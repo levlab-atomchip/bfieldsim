@@ -21,12 +21,23 @@ I_GL3 = 0
 I_GL4 = 0
 I_GL5 = 0
 
-B_xbias = 0 # T
-#B_ybias = 20e-4 # T
+# Field Calibration
+# Taken from ACM Science Chamber Field Calibrations on wiki
+xbiascal = 1054e-7 #T/A
+xgradcal = 0.06211e-2 #T/Am
+ybiascal = 223.67 #T/A
+zbiascal = 1039.7 #T/A
+
+# Bias fields
+B_xbias = I_XBias * xbiascal # T
+B_ybias = I_YBias * ybiascal # T
+B_zbias = I_ZBias * zbiascal # T
+
+# Height Targeting bias selection
 height_target = 500e-6
 B_ybias = 2e-3*I_central*1e-4 / height_target
-print B_ybias
-B_zbias = 0 # T
+print("By Bias: %2.2f G"%(B_ybias*1e4))
+
 
 mww = 100e-6
 mwh = 5e-6
