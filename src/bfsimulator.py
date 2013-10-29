@@ -45,6 +45,7 @@ class BFieldSimulator():
         
         
     def zoom(self, zoom_factor, center_pt = [0, 0, 200e-6]):
+    '''Zoom in on the trap center'''
         center_pt = [self.x_trap, self.y_trap, self.z_trap]
         self.resolution = self.resolution / zoom_factor
         x_cen = center_pt[0]
@@ -64,6 +65,7 @@ class BFieldSimulator():
         self.z_spacing = self.resolution #meters
 
     def set_chip(self, chip):
+    '''Choose a chip configuration, defined in some other file via wirespecs'''
         self.wirespecs = chip['wirespecs'] #this is a bad kludge
         #for ii = 1:n
         self.B_ybias = chip['B_ybias']
@@ -87,6 +89,7 @@ class BFieldSimulator():
         self.z_spacing = self.z_range[1]-self.z_range[0] #meters
 
     def calc_trap_height(self):
+    '''Find minimum along z axis through trap center'''
         self.B_tot_trap = np.array([])
         for ii in xrange(self.n):
             self.tot_field = np.array((0.0,0.0,0.0))
@@ -107,12 +110,14 @@ class BFieldSimulator():
 #            print 'Trap Height is %2.0f'%1e6*self.trap_height
 
     def plot_z(self):
+    '''Plot field against z through trap center'''
         plt.plot(self.z_range*1e3, self.B_tot_trap*1e4)
         plt.xlabel('Z axis (mm)') #Standard axis labelling
         plt.ylabel('Effective |B|, (G)')
         plt.show()
 
-    def calc_xz(self):        
+    def calc_xz(self):
+    '''Calculate B field magnitude in xz plane through trap center'''
         self.x, self.z = np.meshgrid(np.arange(self.plotleft, self.plotright, self.resolution), self.z_range)
         self.B_tot = np.zeros(self.x.shape)
         for coords in np.ndenumerate(self.x):
@@ -126,6 +131,7 @@ class BFieldSimulator():
             self.B_tot[coords[0]] = tot_field_norm
             
     def plot_xz(self):
+    '''Plot field magnitude in xz plane through trap center'''
         fig = plt.figure()
         ax = fig.gca(projection='3d')
 
@@ -136,6 +142,7 @@ class BFieldSimulator():
         plt.show()
         
     def calc_xy(self):
+    '''Calculate field magnitude in xy plane through trap center'''
         self.B_tot = np.zeros(self.x.shape)
         for coords in np.ndenumerate(self.x):    
             tot_field = np.array((0.0,0.0,0.0))
@@ -150,6 +157,7 @@ class BFieldSimulator():
             self.B_tot[coords[0]] = tot_field_norm
 
     def analyze_trap(self):
+    '''Extract trap frequencies, bottom, etc'''
         trap_params = {}
         min_ind = np.unravel_index(self.B_tot.argmin(), self.B_tot.shape)
         x_ind = min_ind[0]
@@ -216,6 +224,7 @@ class BFieldSimulator():
                 
         
     def plot_xy(self):
+    '''plot field magnitude in xy plane through trap center'''
         fig = plt.figure()
         ax = fig.gca(projection='3d')
 
@@ -228,7 +237,9 @@ class BFieldSimulator():
 #            plt.zlabel('B field (G)')
         ax.set_zlabel('B field (G)')
         plt.show()
+        
     def find_trap_freq(self):
+    '''Iterate trap analysis until frequencies converge'''
         self.calc_trap_height()
         self.calc_xy()
 #            logging.debug('\nxtrap: %e\nytrap: %e'%(self.bfsim.x_trap, self.bfsim.y_trap))
