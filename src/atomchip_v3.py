@@ -21,6 +21,10 @@ I_GL3 = 0
 I_GL4 = 0
 I_GL5 = 0
 
+I_XBias = 0
+I_YBias = 0
+I_ZBias = 0
+
 # Field Calibration
 # Taken from ACM Science Chamber Field Calibrations on wiki
 xbiascal = 1054e-7 #T/A
