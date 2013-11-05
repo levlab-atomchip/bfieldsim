@@ -114,6 +114,7 @@ class BFieldSimulator():
         plt.plot(self.z_range*1e3, self.B_tot_trap*1e4)
         plt.xlabel('Z axis (mm)') #Standard axis labelling
         plt.ylabel('Effective |B|, (G)')
+        plt.ylim((0,50))
         plt.show()
 
     def calc_xz(self):
