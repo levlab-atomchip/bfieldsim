@@ -9,21 +9,21 @@ from acwires import HWire, VWire, NWire, HThinWire, VThinWire
 
 #from AtomChip import *
 
-n=4 #number of subwires
+n=3 #number of subwires
 
 I_central = -2.5
 I_GU1 = 0
 I_GU2 = 0
-I_GU3 = 0.5
+I_GU3 = -0.5
 I_GU4 = 0
 I_GU5 = 0
 I_GL1 = 0
 I_GL2 = 0
-I_GL3 = 0.5
+I_GL3 = -0.5
 I_GL4 = 0
 I_GL5 = 0
 
-I_XBias = 3
+I_XBias = 0.25 #positive is field towards BECy
 I_YBias = 0
 I_ZBias = 0
 
@@ -36,10 +36,10 @@ I_Macro_Dimple = 0
 
 # Field Calibration
 # Taken from ACM Science Chamber Field Calibrations on wiki
-xbiascal = 1054e-7 #T/A
+xbiascal = 1054e-7 #T/A 
 xgradcal = 0.06211e-2 #T/Am
-ybiascal = 223.67 #T/A
-zbiascal = 1039.7 #T/A
+ybiascal = 223.67e-7 #T/A
+zbiascal = 1039.7e-7 #T/A
 
 # Bias fields
 B_xbias = I_XBias * xbiascal # T
@@ -64,8 +64,8 @@ macro_left_dimple = -0.0595e-2
 macro_length_H = 5e-2
 macro_length_V = 0.119e-2
 
-macro_bottom_H = -0.61e-2
-macro_bottom_V = -0.731e-2
+macro_bottom_H = -0.16e-2
+macro_bottom_V = -0.281e-2
 macro_height_H = 0.09e-2
 macro_height_V = 0.1e-2
 
@@ -101,7 +101,7 @@ vwires.append(VWire('GU1',               # name
                      -3e-3,              # x0 / m
                      0,              # yd / m
                      mwz,
-                     1))               # z0 / m
+                     n))               # z0 / m
                      
 vwires.append(VWire('GU2',               # name
                     3.8e-3,              # length / m
@@ -110,7 +110,8 @@ vwires.append(VWire('GU2',               # name
                     I_GU2,               # current / A
                      -1e-3,              # x0 / m
                      0,              # yd / m
-                     mwz))               # z0 / m
+                     mwz,
+                     n))               # z0 / m
                      
 vwires.append(VWire('GU3',               # name
                     4.4e-3,              # length / m
@@ -129,7 +130,8 @@ vwires.append(VWire('GU4',               # name
                     I_GU4,               # current / A
                      1e-3,             # x0 / m
                      0,              # yd / m
-                     mwz))               # z0 / m
+                     mwz,
+                     n))               # z0 / m
                      
 vwires.append(VWire('GU5',               # name
                     3.8e-3,              # length / m
@@ -138,7 +140,8 @@ vwires.append(VWire('GU5',               # name
                     I_GU5,               # current / A
                      3e-3,             # x0 / m
                      0,              # yd / m
-                     mwz))               # z0 / m
+                     mwz,
+                     n))               # z0 / m
                      
 vwires.append(VWire('GL1',               # name
                     5e-3,                # length / m
@@ -147,7 +150,8 @@ vwires.append(VWire('GL1',               # name
                     I_GL1,               # current / A
                      -3e-3,              # x0 / m
                      -5e-3,              # yd / m
-                     mwz))               # z0 / m
+                     mwz,
+                     n))               # z0 / m
                      
 vwires.append(VWire('GL2',               # name
                     5e-3,                # length / m
@@ -156,7 +160,8 @@ vwires.append(VWire('GL2',               # name
                     I_GL2,               # current / A
                      -1e-3,              # x0 / m
                      -5e-3,              # yd / m
-                     mwz))               # z0 / m
+                     mwz,
+                     n))               # z0 / m
                      
 vwires.append(VWire('GL3',               # name
                     5e-3,                # length / m
@@ -175,7 +180,8 @@ vwires.append(VWire('GL4',               # name
                     I_GL4,               # current / A
                      1e-3,             # x0 / m
                      -5e-3,              # yd / m
-                     mwz))               # z0 / m
+                     mwz,
+                     n))               # z0 / m
                      
 vwires.append(VWire('GL5',               # name
                     5e-3,                # length / m
@@ -184,7 +190,8 @@ vwires.append(VWire('GL5',               # name
                     I_GL5,               # current / A
                      3e-3,             # x0 / m
                      -5e-3,              # yd / m
-                     mwz))               # z0 / m
+                     mwz,
+                     n))               # z0 / m
                      
 hwires.append(HWire('MacroBias1',               # name
                     macro_length_H,            # length / m
@@ -213,7 +220,8 @@ hwires.append(HWire('MacroCentral',               # name
                     I_Macro_Central,          # current / A
                     macro_left_H,          # xl / m
                     macro_low_central,            # y0 / m
-                    macro_bottom_H))              # z0 / m                    
+                    macro_bottom_H,
+                    n))              # z0 / m                    
                      
 vwires.append(VWire('MacroAxial1',               # name
                     macro_length_V,                # length / m
@@ -222,7 +230,8 @@ vwires.append(VWire('MacroAxial1',               # name
                     I_Macro_Axial_1,               # current / A
                     macro_left_ax1,                  # x0 / m
                     macro_low_V,              # yd / m
-                    macro_bottom_V))               # z0 / m
+                    macro_bottom_V,
+                    n))               # z0 / m
                     
 vwires.append(VWire('MacroAxial2',               # name
                     macro_length_V,                # length / m
@@ -231,7 +240,8 @@ vwires.append(VWire('MacroAxial2',               # name
                     I_Macro_Axial_2,               # current / A
                     macro_left_ax2,                  # x0 / m
                     macro_low_V,              # yd / m
-                    macro_bottom_V))               # z0 / m
+                    macro_bottom_V,
+                    n))               # z0 / m
 
 vwires.append(VWire('MacroDimple',               # name
                     macro_length_V,                # length / m
@@ -240,7 +250,8 @@ vwires.append(VWire('MacroDimple',               # name
                     I_Macro_Dimple,               # current / A
                     macro_left_dimple,                  # x0 / m
                     macro_low_V,              # yd / m
-                    macro_bottom_V))               # z0 / m                    
+                    macro_bottom_V,
+                    n))               # z0 / m                    
                      
 allwires = hwires + vwires + nwires
 

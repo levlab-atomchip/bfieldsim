@@ -114,7 +114,8 @@ class BFieldSimulator():
         plt.plot(self.z_range*1e3, self.B_tot_trap*1e4)
         plt.xlabel('Z axis (mm)') #Standard axis labelling
         plt.ylabel('Effective |B|, (G)')
-        plt.ylim((0,50))
+        plt.ylim((0,5))
+        plt.xlim((0,0.5))
         plt.show()
 
     def calc_xz(self):
@@ -239,8 +240,8 @@ class BFieldSimulator():
         ax.set_zlabel('B field (G)')
         plt.show()
         
-    def find_trap_freq(self):
-        '''Iterate trap analysis until frequencies converge'''
+    def find_trap_freq_1D(self):
+        '''Iterate trap analysis until frequencies converge, as they should for quasi-1D trap'''
         self.calc_trap_height()
         self.calc_xy()
 #            logging.debug('\nxtrap: %e\nytrap: %e'%(self.bfsim.x_trap, self.bfsim.y_trap))
@@ -262,6 +263,33 @@ class BFieldSimulator():
                 break
             n_tries += 1
         logging.debug('f_z and f_trans differ by: %2.1f %%'%(f_z_trans_diff*100))
+        return sim_results
+        
+    def find_trap_freq(self):
+        '''Iterate trap analysis until transverse frequency converges'''
+        self.calc_trap_height()
+        self.calc_xy()
+#            logging.debug('\nxtrap: %e\nytrap: %e'%(self.bfsim.x_trap, self.bfsim.y_trap))
+#            self.bfsim.plot_z()
+#            self.bfsim.plot_xy()
+        sim_results = self.analyze_trap()
+        f_trans_prev = 0.1 # An unreasonably long frequency to start
+        f_trans_diff = abs(sim_results['f_trans'] - f_trans_prev) / sim_results['f_trans']
+        f_trans_prev = sim_results['f_trans']
+        n_tries = 1
+        while f_trans_diff > 0.05 and n_tries < 10:
+            logging.debug('f_trans_prev and f_trans differ by: %2.1f %%'%(f_trans_diff*100))
+            self.zoom(4)
+            self.calc_trap_height()
+            self.calc_xy()
+            sim_results = self.analyze_trap()
+            last_diff = f_trans_diff
+            f_trans_diff = abs(sim_results['f_trans'] - f_trans_prev) / sim_results['f_trans']
+            f_trans_prev = sim_results['f_trans']
+            if abs(last_diff - f_trans_diff) < .005:
+                break
+            n_tries += 1
+        logging.debug('f_trans_prev and f_trans differ by: %2.1f %%'%(f_trans_diff*100))
         return sim_results
         
 if __name__ == '__main__':
