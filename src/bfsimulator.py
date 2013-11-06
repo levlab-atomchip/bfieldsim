@@ -18,7 +18,7 @@ from matplotlib import cm
 import numpy as np
 #import acwires
 import matplotlib.pyplot as plt
-from math import pi, sqrt
+from math import pi, sqrt, atan2
 from acmconstants import K_B, M
 import logging
 
@@ -130,6 +130,7 @@ class BFieldSimulator():
                                              self.z[coords[0]])
                 tot_field += this_field
             tot_field_norm = np.linalg.norm(tot_field + self.B_bias)
+            
             self.B_tot[coords[0]] = tot_field_norm
             
     def plot_xz(self):
@@ -146,6 +147,7 @@ class BFieldSimulator():
     def calc_xy(self):
         '''Calculate field magnitude in xy plane through trap center'''
         self.B_tot = np.zeros(self.x.shape)
+        self.B_dir = np.zeros(self.x.shape)
         for coords in np.ndenumerate(self.x):    
             tot_field = np.array((0.0,0.0,0.0))
             i = 1
@@ -156,6 +158,8 @@ class BFieldSimulator():
                                                 self.z_trap)
                 tot_field += this_field
             tot_field_norm = np.linalg.norm(tot_field + self.B_bias)
+            tot_field_dir = atan2(tot_field[1], tot_field[0])
+            self.B_dir[coords[0]] = tot_field_dir
             self.B_tot[coords[0]] = tot_field_norm
 
     def analyze_trap(self):
@@ -238,6 +242,34 @@ class BFieldSimulator():
         plt.ylabel('Y axis (mm)') #standard axis labelling
 #            plt.zlabel('B field (G)')
         ax.set_zlabel('B field (G)')
+        plt.show()
+        
+    def plot_xy_dir(self):
+        '''plot field direction in xy plane through trap center'''
+        fig = plt.figure()
+        # ax = fig.gca()
+        plt.hsv
+
+        plt.contourf(self.x*1e3,self.y*1e3,self.B_dir, 16, cmap=cm.get_cmap('binary'))
+        plt.xlabel('X axis (mm)')
+        plt.ylabel('Y axis (mm)') #standard axis labelling
+#            plt.zlabel('B field (G)')
+        # ax.set_zlabel('B field (G)')
+        plt.colorbar()
+        plt.show()
+        
+    def plot_xy_coupling(self):
+        '''plot field coupling in xy plane through trap center'''
+        fig = plt.figure()
+        # ax = fig.gca()
+        plt.hsv
+
+        plt.contourf(self.x*1e3,self.y*1e3,np.cos(self.B_dir), 16, cmap=cm.get_cmap('binary'))
+        plt.xlabel('X axis (mm)')
+        plt.ylabel('Y axis (mm)') #standard axis labelling
+#            plt.zlabel('B field (G)')
+        # ax.set_zlabel('B field (G)')
+        plt.colorbar()
         plt.show()
         
     def find_trap_freq_1D(self):
