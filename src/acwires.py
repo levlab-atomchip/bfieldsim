@@ -58,10 +58,10 @@ class HThinWire(HWire):
         B_Gz=B_G*(y-self.y0)
         return np.array((0, B_Gy, B_Gz))
         
-class HFlatWire(HWire):
-    def bfieldcalc(self, x, y, z):
-        ''' Calculate field analytically for finite length,
-        finite width, infinitely flat wire'''
+# class HFlatWire(HWire):
+    # def bfieldcalc(self, x, y, z):
+        # ''' Calculate field analytically for finite length,
+        # finite width, infinitely flat wire'''
         
         
                 
@@ -96,8 +96,8 @@ class VThinWire(VWire):
         YU = self.yd + self.length
         const_G=MU_0*self.current/(4*pi)
         beta = (z-self.z0)**2 + (x-self.x0)**2
-        B_G=const_G*((y - YD)/(beta*sqrt(beta+
-                    (y - YD)**2))-(y - YU)/(beta*sqrt(beta+(y - YU)**2)))
+        B_G=const_G*((y - YD)/(beta*sqrt(beta+(y - YD)**2))
+                    -(y - YU)/(beta*sqrt(beta+(y - YU)**2)))
         B_Gx=B_G*(z - self.z0)
         B_Gz=B_G*(self.x0 - x)
         return np.array((B_Gx, 0, B_Gz))

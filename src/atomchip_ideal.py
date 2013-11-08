@@ -9,26 +9,26 @@ from acwires import HWire, VWire, NWire, HThinWire, VThinWire
 
 #from AtomChip import *
 
-n=5 #number of subwires
+n=2 #number of subwires
 
-I_central = -2.5
-I_GU1 = 0
-I_GU2 = 0.5
+I_central = -3.5
+I_GU1 = 1
+I_GU2 = 0
 I_GU3 = 0
-I_GU4 = 0.5
-I_GU5 = 0
-I_GL1 = 0
-I_GL2 = 0.5
+I_GU4 = 0
+I_GU5 = 1
+I_GL1 = 1
+I_GL2 = 0
 I_GL3 = 0
-I_GL4 = 0.5
-I_GL5 = 0
+I_GL4 = 0
+I_GL5 = 1
 
-I_XBias = 3 #positive is field towards BECy
+I_XBias = 0.25 #positive is field towards BECy
 I_YBias = 0
 I_ZBias = 0
 
-I_Macro_Bias_1 = 27
-I_Macro_Bias_2 = 27
+I_Macro_Bias_1 = 0
+I_Macro_Bias_2 = 0
 I_Macro_Central = 0
 I_Macro_Axial_1 = 0
 I_Macro_Axial_2 = 0
@@ -47,8 +47,9 @@ B_ybias = I_YBias * ybiascal # T
 B_zbias = I_ZBias * zbiascal # T
 
 # Height Targeting bias selection
-# height_target = 500e-6
+height_target = 200e-6
 # B_ybias = 2e-3*I_central*1e-4 / height_target
+B_ybias = -35e-4
 print("By Bias: %2.2f G"%(B_ybias*1e4))
 
 # Define chip geometry
@@ -83,7 +84,17 @@ hwires = []
 vwires = []
 nwires = []
 #(name, length, width, height, current, xl, y0, z0, subwires = 1):
-hwires.append(HWire('WG',               # name
+# hwires.append(HWire('WG',               # name
+                    # 13.6e-3,            # length / m
+                    # mww,                # width / m
+                    # mwh,                # height / m
+                    # I_central,          # current / A
+                     # -6.8e-3,          # xl / m
+                     # 0,            # y0 / m
+                     # mwz,
+                     # n))              # z0 / m
+                     
+hwires.append(HThinWire('WG',               # name
                     13.6e-3,            # length / m
                     mww,                # width / m
                     mwh,                # height / m
@@ -91,9 +102,9 @@ hwires.append(HWire('WG',               # name
                      -6.8e-3,          # xl / m
                      0,            # y0 / m
                      mwz,
-                     n))              # z0 / m
+                     1))              # z0 / m
                      
-vwires.append(VWire('GU1',               # name
+vwires.append(VThinWire('GU1',               # name
                     3.3e-3,              # length / m
                     mww,                 # width / m
                     mwh,                 # height / m
@@ -103,7 +114,7 @@ vwires.append(VWire('GU1',               # name
                      mwz,
                      n))               # z0 / m
                      
-vwires.append(VWire('GU2',               # name
+vwires.append(VThinWire('GU2',               # name
                     3.8e-3,              # length / m
                     mww,                 # width / m
                     mwh,                 # height / m
@@ -113,7 +124,7 @@ vwires.append(VWire('GU2',               # name
                      mwz,
                      n))               # z0 / m
                      
-vwires.append(VWire('GU3',               # name
+vwires.append(VThinWire('GU3',               # name
                     4.4e-3,              # length / m
                     mww,                 # width / m
                     mwh,                 # height / m
@@ -123,7 +134,7 @@ vwires.append(VWire('GU3',               # name
                      mwz,
                      n))               # z0 / m
                      
-vwires.append(VWire('GU4',               # name
+vwires.append(VThinWire('GU4',               # name
                     4.4e-3,              # length / m
                     mww,                 # width / m
                     mwh,                 # height / m
@@ -133,7 +144,7 @@ vwires.append(VWire('GU4',               # name
                      mwz,
                      n))               # z0 / m
                      
-vwires.append(VWire('GU5',               # name
+vwires.append(VThinWire('GU5',               # name
                     3.8e-3,              # length / m
                     mww,                 # width / m
                     mwh,                 # height / m
@@ -143,7 +154,7 @@ vwires.append(VWire('GU5',               # name
                      mwz,
                      n))               # z0 / m
                      
-vwires.append(VWire('GL1',               # name
+vwires.append(VThinWire('GL1',               # name
                     5e-3,                # length / m
                     mww,                 # width / m
                     mwh,                 # height / m
@@ -153,7 +164,7 @@ vwires.append(VWire('GL1',               # name
                      mwz,
                      n))               # z0 / m
                      
-vwires.append(VWire('GL2',               # name
+vwires.append(VThinWire('GL2',               # name
                     5e-3,                # length / m
                     mww,                 # width / m
                     mwh,                 # height / m
@@ -163,7 +174,7 @@ vwires.append(VWire('GL2',               # name
                      mwz,
                      n))               # z0 / m
                      
-vwires.append(VWire('GL3',               # name
+vwires.append(VThinWire('GL3',               # name
                     5e-3,                # length / m
                     mww,                 # width / m
                     mwh,                 # height / m
@@ -173,7 +184,7 @@ vwires.append(VWire('GL3',               # name
                      mwz,
                      n))               # z0 / m
                      
-vwires.append(VWire('GL4',               # name
+vwires.append(VThinWire('GL4',               # name
                     5e-3,                # length / m
                     mww,                 # width / m
                     mwh,                 # height / m
@@ -183,7 +194,7 @@ vwires.append(VWire('GL4',               # name
                      mwz,
                      n))               # z0 / m
                      
-vwires.append(VWire('GL5',               # name
+vwires.append(VThinWire('GL5',               # name
                     5e-3,                # length / m
                     mww,                 # width / m
                     mwh,                 # height / m
@@ -255,7 +266,7 @@ vwires.append(VWire('MacroDimple',               # name
                      
 allwires = hwires + vwires + nwires
 
-atomchip_v4 = {'wirespecs' : allwires,
+atomchip = {'wirespecs' : allwires,
                'B_xbias' : B_xbias,
                'B_ybias' : B_ybias,
                'B_zbias' : B_zbias}
@@ -263,7 +274,7 @@ atomchip_v4 = {'wirespecs' : allwires,
 if __name__ == '__main__':
     import bfsimulator
     b_f_sim = bfsimulator.BFieldSimulator()
-    b_f_sim.set_chip(atomchip_v4)
+    b_f_sim.set_chip(atomchip)
     b_f_sim.calc_trap_height()
     b_f_sim.plot_z()
     # b_f_sim.zoom(1.5, [0,0,b_f_sim.z_trap])
