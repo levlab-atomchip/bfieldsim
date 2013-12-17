@@ -112,17 +112,66 @@ class ThickFinWire(Wire):
         num = sqrt(x0**2 + (y0 - 0.5*w)**2 + z**2)
         return atanh(num / x0)
         
-class ThickFinHWire(ThickFinWire):
+class HThickFinWire(ThickFinWire):
     def __init__(self, name, length, width, height, current, x0,y0,z0)
         super().__init__(self, name, length, width, height, current, x0,y0,z0)
     def bfieldcalc(self, x, y, z):
         return super().bfieldcalc(self, x - self.x0, y, z - self.z0)
 
-class ThickFinVWire(ThickFinWire):
+class VThickFinWire(ThickFinWire):
     '''stored in the rotated frame; never access properties directly, write appropriate getters'''
     def __init__(self, name, length, width, height, current, x0,y0,z0)
         super().__init__(self, name, length, width, height, current, y0,-1*x0,z0)
     def bfieldcalc(self, x, y, z):
         '''Need to rotate the x, y axes for this...'''
         rot_frame_field = super().bfieldcalc(self, x - self.x0, y, z - self.z0)
+        return np.array((-1*rot_frame_field[1], 0, rot_frame_field[2]))
+        
+class RectWire(Wire):
+    '''Wire of finite length, width, and height'''
+    def __init__(self, name, length, width, height, current, x0,y0,z0):
+        Wire.__init__(self,name,length,width,height,current)
+        
+        self.xlims = [self.x0, self.x0 + self.length]
+        self.ylims = [self.y0, self.y0 + self.width]
+        self.zlims = [self.z0, self.z0 + self.height]
+        
+        self.const = (mu_0 * self.current / (4*pi*self.width*self.height))
+        
+    def bfieldcalc(self, x, y, z):
+        '''Set up for a wire with current in the x direction; formula from Treutlein thesis appendix'''
+        b = [0,1]
+        indices_set = [(i, j, k) for i in b for j in b for k in b]
+        y_terms = [(-1**sum(indices))*__AuxFn__(x - self.xlims[indices[0]], 
+                                                y - self.ylims[indices[1]], 
+                                                z - self.zlims[indices[2]]) 
+                                                for indices in indices_set]
+        z_terms = [(-1**sum(indices))*__AuxFn__(x - self.xlims[indices[0]], 
+                                                z - self.zlims[indices[2]], 
+                                                y - self.ylims[indices[1]]) 
+                                                for indices in indices_set]
+        By = -1 * self.const * sum(y_terms)
+        Bz = self.const * sum(z_terms)
+        return np.array((0, By, Bz))
+        
+    def __AuxFn__(self, x, y, z):
+        r = sqrt(x**2 + y**2 + z**2)
+        t1 = z * atan( x * y / (z * r))
+        t2 = -1 * x * log(y + r)
+        t3 = -1 * y * log(x + r)
+        return t1 + t2 + t3
+
+class HRectWire(RectWire):
+    def __init__(self, name, length, width, height, current, x0,y0,z0):
+        super().__init__(self, name, length, width, height, current, x0,y0,z0)
+    def bfieldcalc(self, x, y, z):
+        super().bfieldcalc(self, x, y, z)
+        
+class VRectWire(RectWire):
+    '''stored in the rotated frame; never access properties directly, write appropriate getters'''
+    def __init__(self, name, length, width, height, current, x0,y0,z0)
+        super().__init__(self, name, length, width, height, current, y0,-1*x0,z0)
+    def bfieldcalc(self, x, y, z):
+        '''Need to rotate the x, y axes for this...'''
+        rot_frame_field = super().bfieldcalc(self, x, y, z)
         return np.array((-1*rot_frame_field[1], 0, rot_frame_field[2]))
