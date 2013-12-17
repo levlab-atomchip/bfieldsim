@@ -61,7 +61,7 @@ class VThinWire(Wire):
         # self.zd = zd
         
     # def bfieldcalc(self,x,y,z):
-        loops over subwires, calculating magnetic field at point (x,y,z)
+        # loops over subwires, calculating magnetic field at point (x,y,z)
         # ZD = self.zd
         # ZU = self.zd + self.length
         # subx = np.linspace(self.x0, self.x0 + self.width, self.subwires)
