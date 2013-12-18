@@ -20,6 +20,7 @@ from math import pi, sqrt, atan2, ceil
 from acmconstants import K_B, M
 import logging
 from scipy.optimize import minimize
+import numdifftools as nd
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
@@ -29,10 +30,22 @@ mm = 1e-3
 CONV_THRESH = 0.1 #percent change allowed in f_trans to declare convergence
 
 class BFieldSimulator():
-    def __init__(self):      
-        self.resolution=25*um # resolution of the plots
-        self.plotleft=-1*mm # boundary of plots, made it smaller for small arm trap on 11/6/13
-        self.plotright=1*mm
+    def __init__(self, chip = None):
+        
+        if chip is not None:
+            self.wirespecs = chip['wirespecs'] #this is a bad kludge
+            self.wirespecs = [wire for wire in self.wirespecs if wire.current != 0]
+            self.B_ybias = chip['B_ybias']
+            self.B_bias = np.array((chip['B_xbias'], chip['B_ybias'], chip['B_zbias']))
+            self.x_trap = 0
+            self.y_trap = 0
+            self.calc_trap_height() #initialize z_trap
+            self.calc_xy()# initialize B_tot_trap
+            self.find_xy_min() #initialize x_trap, y_trap
+    
+        self.resolution=250*um # resolution of the plots
+        self.plotleft=0*mm # boundary of plots, made it smaller for small arm trap on 11/6/13
+        self.plotright=10*mm
         self.nhorz = ceil((self.plotright - self.plotleft) / self.resolution)
         self.plottop = 1*mm
         self.plotbottom = -1*mm
@@ -47,21 +60,15 @@ class BFieldSimulator():
         
     def set_chip(self, chip):
         '''Choose a chip configuration, defined in some other file via wirespecs'''
-        self.wirespecs = chip['wirespecs'] #this is a bad kludge
-        self.wirespecs = [wire for wire in self.wirespecs if wire.current != 0]
-        self.B_ybias = chip['B_ybias']
-        self.B_bias = np.array((chip['B_xbias'], chip['B_ybias'], chip['B_zbias']))
-        self.x_trap = 0
-        self.y_trap = 0    
+        self.__init__(chip)
         
     def zoom(self, zoom_factor, center_pt = [0, 0, 200e-6]):
         '''Zoom in on the trap center'''
         logging.debug('Zoom in on: %2.0f, %2.0f, %2.0f'%(self.x_trap*1e6, self.y_trap*1e6, self.z_trap*1e6))
-        center_pt = [self.x_trap, self.y_trap, self.z_trap]
         self.resolution = self.resolution / zoom_factor
-        x_cen = center_pt[0]
-        y_cen = center_pt[1]
-        z_cen = center_pt[2]
+        x_cen = self.x_trap
+        y_cen = self.y_trap
+        z_cen = self.z_trap
         self.plotleft = x_cen - 0.5*self.nhorz*self.resolution
         self.plotright = x_cen + 0.5*self.nhorz*self.resolution
         self.plottop = y_cen + 0.5*self.nvert*self.resolution
@@ -120,16 +127,13 @@ class BFieldSimulator():
                                                   self.y[coords[0]], 
                                                     self.z_trap)
     def find_xy_min(self):
-        self.calc_xy()
         min_ind = np.unravel_index(self.B_tot.argmin(), self.B_tot.shape)
         x_ind = min_ind[0]
-        # print 'x_ind: %d'%x_ind
         y_ind = min_ind[1]
-        # print 'y_ind: %d'%y_ind
         self.x_trap = self.x[0, y_ind]
         self.y_trap = self.y[x_ind, 0]
-        print 'x_trap: %f'%self.x_trap
-        print 'y_trap: %f'%self.y_trap
+        logging.debug('x_trap: %f'%self.x_trap)
+        logging.debug('y_trap: %f'%self.y_trap)
     
     def calc_field(self, x, y, z):
         tot_field = [0,0,0]
@@ -150,21 +154,18 @@ class BFieldSimulator():
                     
     def find_trap_cen(self):
         field_mag = lambda x: self.calc_field_mag(x[0], x[1], x[2])
-        results = minimize(field_mag, (self.x_trap, self.y_trap, self.z_trap), options = {'disp':True})
-        return results.x
+        results = minimize(field_mag, (self.x_trap, self.y_trap, self.z_trap), method = 'Nelder-Mead', options = {'disp':True})
+        [self.x_trap, self.y_trap, self.z_trap] = results.x
 
     def analyze_trap(self):
         '''Extract trap frequencies, bottom, etc'''
         trap_params = {}
         min_ind = np.unravel_index(self.B_tot.argmin(), self.B_tot.shape)
         x_ind = min_ind[0]
-        print 'x_ind: %d'%x_ind
+        # print 'x_ind: %d'%x_ind
         y_ind = min_ind[1]
-        print 'y_ind: %d'%y_ind
-        self.x_trap = self.x[0, y_ind]
-        self.y_trap = self.y[x_ind, 0]
-        print 'x_trap: %f'%self.x_trap
-        print 'y_trap: %f'%self.y_trap
+        # print 'y_ind: %d'%y_ind
+        self.find_trap_cen()
         
         GradBx,GradBy = np.gradient(self.B_tot,self.resolution, self.resolution)
         GGradBx, GGradByx = np.gradient(GradBx,self.resolution, self.resolution)
