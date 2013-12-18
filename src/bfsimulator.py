@@ -43,7 +43,7 @@ class BFieldSimulator():
             self.calc_xy()# initialize B_tot_trap
             self.find_xy_min() #initialize x_trap, y_trap
     
-        self.resolution=250*um # resolution of the plots
+        self.resolution=100*um # resolution of the plots
         self.plotleft=0*mm # boundary of plots, made it smaller for small arm trap on 11/6/13
         self.plotright=10*mm
         self.nhorz = ceil((self.plotright - self.plotleft) / self.resolution)
@@ -167,18 +167,13 @@ class BFieldSimulator():
         # print 'y_ind: %d'%y_ind
         self.find_trap_cen()
         
-        GradBx,GradBy = np.gradient(self.B_tot,self.resolution, self.resolution)
-        GGradBx, GGradByx = np.gradient(GradBx,self.resolution, self.resolution)
-        GGradBxy,GGradBy = np.gradient(GradBy,self.resolution, self.resolution)
         ## Extract and print frequency
         # The first part attempts to extract the transverse and longitudinal
         # frequencies by fitting to a paraboloid and extracting the principal values
-        self.traploc = [x_ind, y_ind]
-        a = abs(GGradBy[(self.traploc[0],self.traploc[1])])
-        b = abs(.5*(GGradByx[(self.traploc[0],self.traploc[1])] 
-                + GGradBxy[(self.traploc[0],self.traploc[1])]))
-        c = abs(GGradBx[(self.traploc[0],self.traploc[1])])
-        Principal_Matrix = np.array([[a, b], [b, c]])
+        field_mag_xy = lambda x: self.calc_field_mag(x[0], x[1], self.z_trap)
+        Hxy = nd.Hessian(field_mag_xy)
+        Principal_Matrix = Hxy([self.x_trap, self.y_trap])
+        
         self.values, self.vectors = np.linalg.eig(Principal_Matrix)
         freqs = []
         for val in self.values:
@@ -189,15 +184,12 @@ class BFieldSimulator():
         self.omega_longitudinal = 2*pi*self.f_longitudinal
         
         # Try to extract f_z by fitting a parabola to z_range
-        grad_z = np.gradient(self.B_tot_trap, self.z_spacing)
-        ggrad_z = np.gradient(grad_z, self.z_spacing)
-        ddBdzz = ggrad_z[self.min_index]
+        field_mag_z = lambda z: self.calc_field_mag(self.x_trap, self.y_trap, z)
+        Hz = nd.Hessian(field_mag_z)
+        ddBdzz = Hz([self.z_trap])[0][0]
         self.f_z = 1.2754*sqrt(abs(ddBdzz))
         self.omega_z = 2*pi*self.f_z
         
-        self.B_ybias = self.B_ybias*1e4 #Gauss
-        self.B_tot_center = self.B_tot[(self.traploc[0],self.traploc[1])]*1e4 #Gauss
-        self.trap_height = self.trap_height #microns
         
         ## Other Trap Parameters
         # self.ODT_temp = 1e-6 #Kelvin, a guess

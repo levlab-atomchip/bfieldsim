@@ -15,7 +15,7 @@ def run_sim():
     # print 'f_long : %2.0f Hz \nf_trans : %2.0f Hz \nf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z'])
     b_f_sim.plot_xy()
     
-# cProfile.run('run_sim()')
+cProfile.run('run_sim()')
 
-if __name__ == '__main__':
-    run_sim()
+# if __name__ == '__main__':
+    # run_sim()
