@@ -26,28 +26,23 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 clear = "\n"*100
 um = 1e-6
+mm = 1e-3
 CONV_THRESH = 0.1 #percent change allowed in f_trans to declare convergence
 
 class BFieldSimulator():
     def __init__(self):      
-        # self.resolution=0.0001 # resolution of the plots, meters, made it smaller on 11/6/13
-        self.resolution=0.00001 # resolution of the plots, meters
-        # self.plotleft=-0.005 # boundary of plots, meters
-        # self.plotright=0.005
-        self.plotleft=-0.001 # boundary of plots, meters, made it smaller for small arm trap on 11/6/13
-        self.plotright=0.001
+        self.resolution=10*um # resolution of the plots
+        self.plotleft=-1*mm # boundary of plots, made it smaller for small arm trap on 11/6/13
+        self.plotright=1*mm
         self.nhorz = ceil((self.plotright - self.plotleft) / self.resolution)
-        self.plottop = 0.0025
-        self.plotbottom = -0.0025
+        self.plottop = 2.5*mm
+        self.plotbottom = -2.5*mm
         self.nvert = ceil((self.plottop - self.plotbottom) / self.resolution)
         self.x, self.y =np.meshgrid(np.arange(self.plotleft, self.plotright, self.resolution), 
                                     np.arange(self.plotbottom, self.plottop, self.resolution))
-        self.plothigh = 5e-3
-        self.plotlow = 1e-6
+        self.plothigh = 5*mm
+        self.plotlow = 1*um
         self.nz = ceil((self.plothigh - self.plotlow) / self.resolution)
-        # self.n = 5000
-#        self.z = 445e-6
-    #    z_range = np.zeros(2,n)
         self.z_range = np.linspace(self.plothigh,self.plotlow,self.nz) #meters
         self.z_spacing = self.z_range[1]-self.z_range[0] #meters
         
@@ -66,7 +61,6 @@ class BFieldSimulator():
         self.plotbottom = y_cen - 0.5*self.nvert*self.resolution
         self.plothigh = z_cen + 0.5*self.nz*self.resolution
         self.plotlow = max(z_cen -0.5*self.nz*self.resolution, 1e-6)
-        # self.plotlow = 1e-6
 
         self.x, self.y =np.meshgrid(
                 np.linspace(self.plotleft, self.plotright, self.nhorz), 
@@ -77,22 +71,15 @@ class BFieldSimulator():
     def set_chip(self, chip):
         '''Choose a chip configuration, defined in some other file via wirespecs'''
         self.wirespecs = chip['wirespecs'] #this is a bad kludge
-        #for ii = 1:n
+        self.wirespecs = [wire for wire in self.wirespecs if wire.current != 0]
         self.B_ybias = chip['B_ybias']
         self.B_bias = np.array((chip['B_xbias'], chip['B_ybias'], chip['B_zbias']))
-        #print B_bias
         self.x_trap = 0
         self.y_trap = 0
-        # self.resolution=0.0001 # resolution of the plots, meters, shrunk on 11/7/13
         self.resolution=25.0*um # resolution of the plots, meters
-
-        # self.plotleft=-0.005 # boundary of plots, meters, shrunk on 11/6/13
-        # self.plotright=0.005
-        self.plotleft=-0.001 # boundary of plots, meters
-        self.plotright=0.001
+        self.plotleft = -1*mm # boundary of plots, meters
+        self.plotright = 1*mm
         self.nhorz = ceil((self.plotright - self.plotleft) / self.resolution)
-        # self.plottop = 0.0025 # shrunk on 11/6/13
-        # self.plotbottom = -0.0025
         self.plottop = 0.001
         self.plotbottom = -0.001
         self.nvert = ceil((self.plottop - self.plotbottom) / self.resolution)
@@ -101,21 +88,9 @@ class BFieldSimulator():
         self.plothigh = 5e-3
         self.plotlow = 1e-6
         self.nz = ceil((self.plothigh - self.plotlow) / self.resolution)
-        # print('nz: %f'%self.nz)
-        # self.n = 5000
-#        self.z = 445e-6
-    #    z_range = np.zeros(2,n)
         self.z_range = np.linspace(self.plotlow,self.plothigh,self.nz) #meters
         self.z_spacing = self.z_range[1]-self.z_range[0] #meters
-        
-        # print('length z_range: %f'%len(self.z_range))
-        
-        # self.n = 5000
-#        self.z = 445e-6
-    #    z_range = np.zeros(2,n)
-        # self.z_range = np.linspace(1e-6,3.5e-3,self.n) #meters
-        # self.z_spacing = self.z_range[1]-self.z_range[0] #meters
-
+ 
     def calc_trap_height(self):
         '''Find minimum along z axis through trap center'''
         self.B_tot_trap = np.array([])
@@ -127,27 +102,18 @@ class BFieldSimulator():
                     self.tot_field = self.tot_field + this_field
 
             self.tot_field_norm = np.linalg.norm(self.tot_field + self.B_bias)
-
             self.B_tot_trap = np.append(self.B_tot_trap,self.tot_field_norm)
-
-#            min_B_tot = np.min(self.B_tot_trap)
-            self.min_index = np.argmin(self.B_tot_trap)
-            
+            self.min_index = np.argmin(self.B_tot_trap)           
             self.trap_height = self.z_range[self.min_index]
             self.z_trap = self.trap_height
-#            print 'Trap Height is %2.0f'%1e6*self.trap_height
+
 
     def plot_z(self):
         '''Plot field against z through trap center'''
-        # print('length z_range: %f'%len(self.z_range))
-        # print('length B_tot_trap: %f'%len(self.B_tot_trap))
-        # print self.B_tot_trap
-        
         plt.plot(self.z_range*1e3, self.B_tot_trap*1e4)
         plt.xlabel('Z axis (mm)') #Standard axis labelling
         plt.ylabel('Effective |B|, (G)')
         plt.ylim((1e4*min(self.B_tot_trap),1e4*min(self.B_tot_trap[0], self.B_tot_trap[-1])))
-        # plt.xlim((0,0.5))
         plt.show()
 
     def calc_xz(self):
@@ -179,7 +145,6 @@ class BFieldSimulator():
     def calc_xy(self):
         '''Calculate field magnitude in xy plane through trap center'''
         self.B_tot = np.zeros(self.x.shape)
-        # self.B_dir = np.zeros(self.x.shape)
         for coords in np.ndenumerate(self.x):    
             tot_field = [0,0,0]
             i = 1
@@ -195,7 +160,6 @@ class BFieldSimulator():
             tot_field = np.array(tot_field)
             tot_field_norm = np.linalg.norm(tot_field + self.B_bias)
             tot_field_dir = atan2(tot_field[1], tot_field[0])
-            # self.B_dir[coords[0]] = tot_field_dir
             self.B_tot[coords[0]] = tot_field_norm
             
     def find_trap_cen(self):
@@ -221,15 +185,10 @@ class BFieldSimulator():
         # The first part attempts to extract the transverse and longitudinal
         # frequencies by fitting to a paraboloid and extracting the principal values
         self.traploc = [x_ind, y_ind]
-#        print traploc
-#        print GGradBy
         a = abs(GGradBy[(self.traploc[0],self.traploc[1])])
         b = abs(.5*(GGradByx[(self.traploc[0],self.traploc[1])] 
                 + GGradBxy[(self.traploc[0],self.traploc[1])]))
         c = abs(GGradBx[(self.traploc[0],self.traploc[1])])
-#        print a
-#        print b
-#        print c
         Principal_Matrix = np.array([[a, b], [b, c]])
         self.values, self.vectors = np.linalg.eig(Principal_Matrix)
         freqs = []
@@ -281,35 +240,28 @@ class BFieldSimulator():
                         alpha=0.3)
         plt.xlabel('X axis (mm)')
         plt.ylabel('Y axis (mm)') #standard axis labelling
-#            plt.zlabel('B field (G)')
         ax.set_zlabel('B field (G)')
         plt.show()
         
     def plot_xy_dir(self):
         '''plot field direction in xy plane through trap center'''
         fig = plt.figure()
-        # ax = fig.gca()
         plt.hsv
 
         plt.contourf(self.x*1e3,self.y*1e3,self.B_dir, 16, cmap=cm.get_cmap('binary'))
         plt.xlabel('X axis (mm)')
         plt.ylabel('Y axis (mm)') #standard axis labelling
-#            plt.zlabel('B field (G)')
-        # ax.set_zlabel('B field (G)')
         plt.colorbar()
         plt.show()
         
     def plot_xy_coupling(self):
         '''plot field coupling in xy plane through trap center'''
         fig = plt.figure()
-        # ax = fig.gca()
         plt.hsv
 
         plt.contourf(self.x*1e3,self.y*1e3,np.cos(self.B_dir), 16, cmap=cm.get_cmap('binary'))
         plt.xlabel('X axis (mm)')
         plt.ylabel('Y axis (mm)') #standard axis labelling
-#            plt.zlabel('B field (G)')
-        # ax.set_zlabel('B field (G)')
         plt.colorbar()
         plt.show()
         
@@ -317,9 +269,6 @@ class BFieldSimulator():
         '''Iterate trap analysis until frequencies converge, as they should for quasi-1D trap'''
         self.calc_trap_height()
         self.calc_xy()
-#            logging.debug('\nxtrap: %e\nytrap: %e'%(self.bfsim.x_trap, self.bfsim.y_trap))
-#            self.bfsim.plot_z()
-#            self.bfsim.plot_xy()
         sim_results = self.analyze_trap()
         
         f_z_trans_diff = abs(sim_results['f_z'] - sim_results['f_trans']) / sim_results['f_z']
@@ -350,8 +299,6 @@ class BFieldSimulator():
         self.calc_trap_height()
         self.calc_xy()
         logging.debug('\nxtrap: %e\nytrap: %e'%(self.x_trap, self.y_trap))
-        # self.plot_z()
-        # self.plot_xy()
         sim_results = self.analyze_trap()
         f_trans_prev = 0.1 # An unreasonably long frequency to start
         f_trans_diff = abs(sim_results['f_trans'] - f_trans_prev) / sim_results['f_trans']
@@ -365,8 +312,6 @@ class BFieldSimulator():
             self.zoom(2) #used to be 4; 11/6/13
             self.calc_trap_height()
             self.calc_xy()
-            # self.plot_z()
-            # self.plot_xy()
             sim_results = self.analyze_trap()
             last_diff = f_trans_diff
             f_trans_diff = abs(sim_results['f_trans'] - f_trans_prev) / sim_results['f_trans']
