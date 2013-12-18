@@ -5,30 +5,43 @@ Created on 2013-07-12
 @author: Will
 """
 
-from acwires import HThinWire, VThinWire
+from acwires import HThinWire, VThinWire, HRectWire, VRectWire
 
 #from AtomChip import *
 
 n=1 #number of subwires
 
-I_central = -3.5
-I_GU1 = 1
-I_GU2 = 0
+I_central = -2.5
+I_GU1 = 0
+I_GU2 = 0.5
 I_GU3 = 0
-I_GU4 = 0
-I_GU5 = 1
-I_GL1 = 1
-I_GL2 = 0
+I_GU4 = 0.5
+I_GU5 = 0
+I_GL1 = 0
+I_GL2 = 0.5
 I_GL3 = 0
-I_GL4 = 0
-I_GL5 = 1
+I_GL4 = 0.5
+I_GL5 = 0
 
-I_XBias = 0.25 #positive is field towards BECy
+# I_central = 0
+# I_GU1 = 0
+# I_GU2 = 0
+# I_GU3 = 0
+# I_GU4 = 0
+# I_GU5 = 0
+# I_GL1 = 0
+# I_GL2 = 0
+# I_GL3 = 0
+# I_GL4 = 0
+# I_GL5 = 0
+
+I_XBias = 3 #positive is field towards BECy
+# I_XBias = 0
 I_YBias = 0
 I_ZBias = 0
 
-I_Macro_Bias_1 = 0
-I_Macro_Bias_2 = 0
+I_Macro_Bias_1 = 27
+I_Macro_Bias_2 = 27
 I_Macro_Central = 0
 I_Macro_Axial_1 = 0
 I_Macro_Axial_2 = 0
@@ -47,9 +60,8 @@ B_ybias = I_YBias * ybiascal # T
 B_zbias = I_ZBias * zbiascal # T
 
 # Height Targeting bias selection
-height_target = 200e-6
-# B_ybias = 2e-3*I_central*1e-4 / height_target
-B_ybias = -35e-4
+height_target = 500e-6
+B_ybias = 2e-3*I_central*1e-4 / height_target
 print("By Bias: %2.2f G"%(B_ybias*1e4))
 
 # Define chip geometry
@@ -63,7 +75,7 @@ macro_left_ax1 = -0.685e-2
 macro_left_ax2 = 0.565e-2
 macro_left_dimple = -0.0595e-2
 macro_length_H = 5e-2
-macro_length_V = 0.119e-2
+macro_length_V = 3e-2
 
 macro_bottom_H = -0.16e-2
 macro_bottom_V = -0.281e-2
@@ -75,7 +87,8 @@ macro_low_bias2 = -0.33e-2
 macro_low_central = -0.0785e-2
 macro_low_V = -2.5e-2
 macro_width_H = 0.157e-2
-macro_width_V = 3e-2
+macro_width_V = 0.119e-2
+
 
 ## Wire definition
 
@@ -84,16 +97,6 @@ hwires = []
 vwires = []
 nwires = []
 #(name, length, width, height, current, xl, y0, z0, subwires = 1):
-# hwires.append(HThinWire('WG',               # name
-                    # 13.6e-3,            # length / m
-                    # mww,                # width / m
-                    # mwh,                # height / m
-                    # I_central,          # current / A
-                     # -6.8e-3,          # xl / m
-                     # 0,            # y0 / m
-                     # mwz,
-                     # n))              # z0 / m
-                     
 hwires.append(HThinWire('WG',               # name
                     13.6e-3,            # length / m
                     mww,                # width / m
@@ -102,7 +105,7 @@ hwires.append(HThinWire('WG',               # name
                      -6.8e-3,          # xl / m
                      0,            # y0 / m
                      mwz,
-                     1))              # z0 / m
+                     n))              # z0 / m
                      
 vwires.append(VThinWire('GU1',               # name
                     3.3e-3,              # length / m
@@ -204,37 +207,37 @@ vwires.append(VThinWire('GL5',               # name
                      mwz,
                      n))               # z0 / m
                      
-hwires.append(HThinWire('MacroBias1',               # name
+hwires.append(HRectWire('MacroBias1',               # name
                     macro_length_H,            # length / m
                     macro_width_H,                # width / m
-                    macro_bottom_H,                # height / m
+                    macro_height_H,                # height / m
                     I_Macro_Bias_1,          # current / A
                     macro_left_H,          # xl / m
                     macro_low_bias1,            # y0 / m
                     macro_bottom_H,
                     n))              # z0 / m
 
-hwires.append(HThinWire('MacroBias2',               # name
+hwires.append(HRectWire('MacroBias2',               # name
                     macro_length_H,            # length / m
                     macro_width_H,                # width / m
-                    macro_bottom_H,                # height / m
+                    macro_height_H,                # height / m
                     I_Macro_Bias_2,          # current / A
                     macro_left_H,          # xl / m
                     macro_low_bias2,            # y0 / m
                     macro_bottom_H,
                     n))              # z0 / m
 
-hwires.append(HThinWire('MacroCentral',               # name
+hwires.append(HRectWire('MacroCentral',               # name
                     macro_length_H,            # length / m
                     macro_width_H,                # width / m
-                    macro_bottom_H,                # height / m
+                    macro_height_H,                # height / m
                     I_Macro_Central,          # current / A
                     macro_left_H,          # xl / m
                     macro_low_central,            # y0 / m
                     macro_bottom_H,
                     n))              # z0 / m                    
                      
-vwires.append(VThinWire('MacroAxial1',               # name
+vwires.append(VRectWire('MacroAxial1',               # name
                     macro_length_V,                # length / m
                     macro_width_V,                 # width / m
                     macro_height_V,                 # height / m
@@ -244,7 +247,7 @@ vwires.append(VThinWire('MacroAxial1',               # name
                     macro_bottom_V,
                     n))               # z0 / m
                     
-vwires.append(VThinWire('MacroAxial2',               # name
+vwires.append(VRectWire('MacroAxial2',               # name
                     macro_length_V,                # length / m
                     macro_width_V,                 # width / m
                     macro_height_V,                 # height / m
@@ -254,7 +257,7 @@ vwires.append(VThinWire('MacroAxial2',               # name
                     macro_bottom_V,
                     n))               # z0 / m
 
-vwires.append(VThinWire('MacroDimple',               # name
+vwires.append(VRectWire('MacroDimple',               # name
                     macro_length_V,                # length / m
                     macro_width_V,                 # width / m
                     macro_height_V,                 # height / m
@@ -266,7 +269,7 @@ vwires.append(VThinWire('MacroDimple',               # name
                      
 allwires = hwires + vwires + nwires
 
-atomchip = {'wirespecs' : allwires,
+atomchip_v4 = {'wirespecs' : allwires,
                'B_xbias' : B_xbias,
                'B_ybias' : B_ybias,
                'B_zbias' : B_zbias}
@@ -274,7 +277,7 @@ atomchip = {'wirespecs' : allwires,
 if __name__ == '__main__':
     import bfsimulator
     b_f_sim = bfsimulator.BFieldSimulator()
-    b_f_sim.set_chip(atomchip)
+    b_f_sim.set_chip(atomchip_v4)
     b_f_sim.calc_trap_height()
     b_f_sim.plot_z()
     # b_f_sim.zoom(1.5, [0,0,b_f_sim.z_trap])

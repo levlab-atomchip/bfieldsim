@@ -18,13 +18,15 @@ from matplotlib import cm
 import numpy as np
 #import acwires
 import matplotlib.pyplot as plt
-from math import pi, sqrt, atan2
+from math import pi, sqrt, atan2, ceil
 from acmconstants import K_B, M
 import logging
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 clear = "\n"*100
+um = 1e-6
+CONV_THRESH = 0.1 #percent change allowed in f_trans to declare convergence
 
 class BFieldSimulator():
     def __init__(self):      
@@ -34,15 +36,15 @@ class BFieldSimulator():
         # self.plotright=0.005
         self.plotleft=-0.001 # boundary of plots, meters, made it smaller for small arm trap on 11/6/13
         self.plotright=0.001
-        self.nhorz = (self.plotright - self.plotleft) / self.resolution
+        self.nhorz = ceil((self.plotright - self.plotleft) / self.resolution)
         self.plottop = 0.0025
         self.plotbottom = -0.0025
-        self.nvert = (self.plottop - self.plotbottom) / self.resolution
+        self.nvert = ceil((self.plottop - self.plotbottom) / self.resolution)
         self.x, self.y =np.meshgrid(np.arange(self.plotleft, self.plotright, self.resolution), 
                                     np.arange(self.plotbottom, self.plottop, self.resolution))
         self.plothigh = 5e-3
         self.plotlow = 1e-6
-        self.nz = (self.plothigh - self.plotlow) / self.resolution
+        self.nz = ceil((self.plothigh - self.plotlow) / self.resolution)
         # self.n = 5000
 #        self.z = 445e-6
     #    z_range = np.zeros(2,n)
@@ -82,28 +84,31 @@ class BFieldSimulator():
         self.x_trap = 0
         self.y_trap = 0
         # self.resolution=0.0001 # resolution of the plots, meters, shrunk on 11/7/13
-        self.resolution=0.000025 # resolution of the plots, meters
+        self.resolution=25.0*um # resolution of the plots, meters
 
         # self.plotleft=-0.005 # boundary of plots, meters, shrunk on 11/6/13
         # self.plotright=0.005
         self.plotleft=-0.001 # boundary of plots, meters
         self.plotright=0.001
-        self.nhorz = (self.plotright - self.plotleft) / self.resolution
+        self.nhorz = ceil((self.plotright - self.plotleft) / self.resolution)
         # self.plottop = 0.0025 # shrunk on 11/6/13
         # self.plotbottom = -0.0025
         self.plottop = 0.001
         self.plotbottom = -0.001
-        self.nvert = (self.plottop - self.plotbottom) / self.resolution
+        self.nvert = ceil((self.plottop - self.plotbottom) / self.resolution)
         self.x, self.y =np.meshgrid(np.arange(self.plotleft, self.plotright, self.resolution), 
                                     np.arange(self.plotbottom, self.plottop, self.resolution))
         self.plothigh = 5e-3
         self.plotlow = 1e-6
-        self.nz = (self.plothigh - self.plotlow) / self.resolution
+        self.nz = ceil((self.plothigh - self.plotlow) / self.resolution)
+        # print('nz: %f'%self.nz)
         # self.n = 5000
 #        self.z = 445e-6
     #    z_range = np.zeros(2,n)
-        self.z_range = np.linspace(self.plothigh,self.plotlow,self.nz) #meters
+        self.z_range = np.linspace(self.plotlow,self.plothigh,self.nz) #meters
         self.z_spacing = self.z_range[1]-self.z_range[0] #meters
+        
+        # print('length z_range: %f'%len(self.z_range))
         
         # self.n = 5000
 #        self.z = 445e-6
@@ -134,6 +139,10 @@ class BFieldSimulator():
 
     def plot_z(self):
         '''Plot field against z through trap center'''
+        # print('length z_range: %f'%len(self.z_range))
+        # print('length B_tot_trap: %f'%len(self.B_tot_trap))
+        # print self.B_tot_trap
+        
         plt.plot(self.z_range*1e3, self.B_tot_trap*1e4)
         plt.xlabel('Z axis (mm)') #Standard axis labelling
         plt.ylabel('Effective |B|, (G)')
@@ -308,7 +317,7 @@ class BFieldSimulator():
         
         f_z_trans_diff = abs(sim_results['f_z'] - sim_results['f_trans']) / sim_results['f_z']
         n_tries = 1
-        while f_z_trans_diff > 0.01 and n_tries < 10:
+        while f_z_trans_diff > CONV_THRESH and n_tries < 10:
             logging.debug('f_z and f_trans differ by: %2.1f %%'%(f_z_trans_diff*100))
             print 'x_trap : %2.0f um \ny_trap : %2.0f um \nz_trap : %2.0f um'%(self.x_trap*1e6, self.y_trap*1e6, self.z_trap*1e6)
             print 'f_long : %2.0f Hz \nf_trans : %2.0f Hz \nf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z'])
@@ -334,14 +343,14 @@ class BFieldSimulator():
         self.calc_trap_height()
         self.calc_xy()
         logging.debug('\nxtrap: %e\nytrap: %e'%(self.x_trap, self.y_trap))
-        self.plot_z()
-        self.plot_xy()
+        # self.plot_z()
+        # self.plot_xy()
         sim_results = self.analyze_trap()
         f_trans_prev = 0.1 # An unreasonably long frequency to start
         f_trans_diff = abs(sim_results['f_trans'] - f_trans_prev) / sim_results['f_trans']
         f_trans_prev = sim_results['f_trans']
         n_tries = 1
-        while f_trans_diff > 0.01 and n_tries < 10:
+        while f_trans_diff > CONV_THRESH and n_tries < 10:
             logging.debug('f_trans_prev and f_trans differ by: %2.1f %%'%(f_trans_diff*100))
             print 'x_trap : %2.0f um \ny_trap : %2.0f um \nz_trap : %2.0f um'%(self.x_trap*1e6, self.y_trap*1e6, self.z_trap*1e6)
             print 'f_long : %2.0f Hz \nf_trans : %2.0f Hz \nf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z'])
@@ -349,8 +358,8 @@ class BFieldSimulator():
             self.zoom(2) #used to be 4; 11/6/13
             self.calc_trap_height()
             self.calc_xy()
-            self.plot_z()
-            self.plot_xy()
+            # self.plot_z()
+            # self.plot_xy()
             sim_results = self.analyze_trap()
             last_diff = f_trans_diff
             f_trans_diff = abs(sim_results['f_trans'] - f_trans_prev) / sim_results['f_trans']
