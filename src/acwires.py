@@ -26,7 +26,7 @@ class Wire():
         beta = z**2 + y**2
         B_G=const_G*(xL/(beta*sqrt(beta+
                     xL**2))-xR/(beta*sqrt(beta+xR**2)))
-        return np.array((0, -1*B_G*z,B_G*y))
+        return (0, -1*B_G*z,B_G*y)
 
         
 class HThinWire(Wire):
@@ -49,7 +49,7 @@ class VThinWire(Wire):
         
     def bfieldcalc(self,x,y,z):
         rot_frame_field = Wire.bfieldcalc(self, x - self.xl, y - self.y0, z - self.z0)
-        return np.array((-1*rot_frame_field[1], 0, rot_frame_field[2]))
+        return (-1*rot_frame_field[1], 0, rot_frame_field[2])
       
         
 # class NWire(Wire):
@@ -96,7 +96,7 @@ class ThickFinWire(Wire):
         G = (MU_0 * I / (4*pi*w))
         B_y = -1*G * (__AuxBy__(x, y, z, w) + __AuxBy__(-1*x, y, z, w) - __AuxBy__(x, y, z, -1*w) - __AuxBy__(-1*x, y, z, -1*w))
         B_z = G * (__AuxBz__(x, y, z, w) + __AuxBz__(-1*x, y, z, w) - __AuxBz__(x, y, z, -1*w) - __AuxBz__(-1*x, y, z, -1*w))
-        return np.array((0, B_y, B_z))
+        return (0, B_y, B_z)
     
     def __AuxBy__(self, x, y, z, w):
         x0 = self.L + x
@@ -124,7 +124,7 @@ class VThickFinWire(ThickFinWire):
     def bfieldcalc(self, x, y, z):
         '''Need to rotate the x, y axes for this...'''
         rot_frame_field = ThickFinWire.bfieldcalc(self, x - self.x0, y, z - self.z0)
-        return np.array((-1*rot_frame_field[1], 0, rot_frame_field[2]))
+        return (-1*rot_frame_field[1], 0, rot_frame_field[2])
         
 class RectWire(Wire):
     '''Wire of finite length, width, and height'''
@@ -152,7 +152,7 @@ class RectWire(Wire):
                                                 for indices in indices_set]
         By = -1 * self.const * sum(y_terms)
         Bz = self.const * sum(z_terms)
-        return np.array((0, By, Bz))
+        return (0, By, Bz)
         
     def __AuxFn__(self, x, y, z):
         r = sqrt(x**2 + y**2 + z**2)
@@ -174,4 +174,4 @@ class VRectWire(RectWire):
     def bfieldcalc(self, x, y, z):
         '''Need to rotate the x, y axes for this...'''
         rot_frame_field = RectWire.bfieldcalc(self, x, y, z)
-        return np.array((-1*rot_frame_field[1], 0, rot_frame_field[2]))
+        return (-1*rot_frame_field[1], 0, rot_frame_field[2])

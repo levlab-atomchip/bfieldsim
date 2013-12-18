@@ -181,14 +181,17 @@ class BFieldSimulator():
         self.B_tot = np.zeros(self.x.shape)
         # self.B_dir = np.zeros(self.x.shape)
         for coords in np.ndenumerate(self.x):    
-            tot_field = np.array((0.0,0.0,0.0))
+            tot_field = [0,0,0]
             i = 1
             for wire in self.wirespecs:
                 i += 1
                 this_field = wire.bfieldcalc(self.x[coords[0]], 
                                               self.y[coords[0]], 
                                                 self.z_trap)
-                tot_field += this_field
+                tot_field[0] += this_field[0]
+                tot_field[1] += this_field[1]
+                tot_field[2] += this_field[2]
+            tot_field = np.array(tot_field)
             tot_field_norm = np.linalg.norm(tot_field + self.B_bias)
             tot_field_dir = atan2(tot_field[1], tot_field[0])
             # self.B_dir[coords[0]] = tot_field_dir
