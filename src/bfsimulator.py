@@ -14,9 +14,7 @@ This is a class-based implementation, unlike BFieldSim
 
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
-#from AtomChip import *
 import numpy as np
-#import acwires
 import matplotlib.pyplot as plt
 from math import pi, sqrt, atan2, ceil
 from acmconstants import K_B, M
@@ -31,12 +29,12 @@ CONV_THRESH = 0.1 #percent change allowed in f_trans to declare convergence
 
 class BFieldSimulator():
     def __init__(self):      
-        self.resolution=10*um # resolution of the plots
+        self.resolution=25*um # resolution of the plots
         self.plotleft=-1*mm # boundary of plots, made it smaller for small arm trap on 11/6/13
         self.plotright=1*mm
         self.nhorz = ceil((self.plotright - self.plotleft) / self.resolution)
-        self.plottop = 2.5*mm
-        self.plotbottom = -2.5*mm
+        self.plottop = 1*mm
+        self.plotbottom = -1*mm
         self.nvert = ceil((self.plottop - self.plotbottom) / self.resolution)
         self.x, self.y =np.meshgrid(np.arange(self.plotleft, self.plotright, self.resolution), 
                                     np.arange(self.plotbottom, self.plottop, self.resolution))
@@ -46,6 +44,14 @@ class BFieldSimulator():
         self.z_range = np.linspace(self.plothigh,self.plotlow,self.nz) #meters
         self.z_spacing = self.z_range[1]-self.z_range[0] #meters
         
+    def set_chip(self, chip):
+        '''Choose a chip configuration, defined in some other file via wirespecs'''
+        self.wirespecs = chip['wirespecs'] #this is a bad kludge
+        self.wirespecs = [wire for wire in self.wirespecs if wire.current != 0]
+        self.B_ybias = chip['B_ybias']
+        self.B_bias = np.array((chip['B_xbias'], chip['B_ybias'], chip['B_zbias']))
+        self.x_trap = 0
+        self.y_trap = 0    
         
     def zoom(self, zoom_factor, center_pt = [0, 0, 200e-6]):
         '''Zoom in on the trap center'''
@@ -67,45 +73,15 @@ class BFieldSimulator():
                 np.linspace(self.plotbottom, self.plottop, self.nvert))
         self.z_range = np.linspace(self.plotlow,self.plothigh,self.nz) #meters
         self.z_spacing = self.resolution #meters
-
-    def set_chip(self, chip):
-        '''Choose a chip configuration, defined in some other file via wirespecs'''
-        self.wirespecs = chip['wirespecs'] #this is a bad kludge
-        self.wirespecs = [wire for wire in self.wirespecs if wire.current != 0]
-        self.B_ybias = chip['B_ybias']
-        self.B_bias = np.array((chip['B_xbias'], chip['B_ybias'], chip['B_zbias']))
-        self.x_trap = 0
-        self.y_trap = 0
-        self.resolution=25.0*um # resolution of the plots, meters
-        self.plotleft = -1*mm # boundary of plots, meters
-        self.plotright = 1*mm
-        self.nhorz = ceil((self.plotright - self.plotleft) / self.resolution)
-        self.plottop = 0.001
-        self.plotbottom = -0.001
-        self.nvert = ceil((self.plottop - self.plotbottom) / self.resolution)
-        self.x, self.y =np.meshgrid(np.arange(self.plotleft, self.plotright, self.resolution), 
-                                    np.arange(self.plotbottom, self.plottop, self.resolution))
-        self.plothigh = 5e-3
-        self.plotlow = 1e-6
-        self.nz = ceil((self.plothigh - self.plotlow) / self.resolution)
-        self.z_range = np.linspace(self.plotlow,self.plothigh,self.nz) #meters
-        self.z_spacing = self.z_range[1]-self.z_range[0] #meters
  
     def calc_trap_height(self):
         '''Find minimum along z axis through trap center'''
-        self.B_tot_trap = np.array([])
+        self.B_tot_trap = np.zeros(len(self.z_range))
         for ii in xrange(len(self.z_range)):
-            self.tot_field = np.array((0.0,0.0,0.0))
-            for wire in self.wirespecs:
-                if wire.current != 0:
-                    this_field = wire.bfieldcalc(self.x_trap, self.y_trap, self.z_range[ii])
-                    self.tot_field = self.tot_field + this_field
-
-            self.tot_field_norm = np.linalg.norm(self.tot_field + self.B_bias)
-            self.B_tot_trap = np.append(self.B_tot_trap,self.tot_field_norm)
-            self.min_index = np.argmin(self.B_tot_trap)           
-            self.trap_height = self.z_range[self.min_index]
-            self.z_trap = self.trap_height
+            self.B_tot_trap[ii] = self.calc_field_mag(self.x_trap, self.y_trap, self.z_range[ii])
+        self.min_index = np.argmin(self.B_tot_trap)           
+        self.trap_height = self.z_range[self.min_index]
+        self.z_trap = self.trap_height
 
 
     def plot_z(self):
@@ -118,18 +94,11 @@ class BFieldSimulator():
 
     def calc_xz(self):
         '''Calculate B field magnitude in xz plane through trap center'''
-        self.x, self.z = np.meshgrid(np.arange(self.plotleft, self.plotright, self.resolution), self.z_range)
         self.B_tot = np.zeros(self.x.shape)
-        for coords in np.ndenumerate(self.x):
-            tot_field = np.array((0.0,0.0,0.0))
-            for wire in self.wirespecs.allwires:
-                this_field = wire.bfieldcalc(self.x[coords[0]], 
-                                             self.y_trap, 
-                                             self.z[coords[0]])
-                tot_field += this_field
-            tot_field_norm = np.linalg.norm(tot_field + self.B_bias)
-            
-            self.B_tot[coords[0]] = tot_field_norm
+        for coords in np.ndenumerate(self.x):    
+            self.B_tot[coords[0]] = self.calc_field_mag(self.x[coords[0]], 
+                                                  self.y_trap, 
+                                                    self.z[coords[0]])
             
     def plot_xz(self):
         '''Plot field magnitude in xz plane through trap center'''
@@ -146,22 +115,27 @@ class BFieldSimulator():
         '''Calculate field magnitude in xy plane through trap center'''
         self.B_tot = np.zeros(self.x.shape)
         for coords in np.ndenumerate(self.x):    
-            tot_field = [0,0,0]
-            i = 1
-            for wire in self.wirespecs:
-                if wire.current != 0:
-                    i += 1
-                    this_field = wire.bfieldcalc(self.x[coords[0]], 
+            self.B_tot[coords[0]] = self.calc_field_mag(self.x[coords[0]], 
                                                   self.y[coords[0]], 
                                                     self.z_trap)
-                    tot_field[0] += this_field[0]
-                    tot_field[1] += this_field[1]
-                    tot_field[2] += this_field[2]
-            tot_field = np.array(tot_field)
-            tot_field_norm = np.linalg.norm(tot_field + self.B_bias)
-            tot_field_dir = atan2(tot_field[1], tot_field[0])
-            self.B_tot[coords[0]] = tot_field_norm
-            
+    
+    def calc_field(self, x, y, z):
+        tot_field = [0,0,0]
+        for wire in self.wirespecs:
+            this_field = wire.bfieldcalc(x, y, z)
+            tot_field[0] += this_field[0]
+            tot_field[1] += this_field[1]
+            tot_field[2] += this_field[2]
+        return np.array(tot_field)
+    
+    def calc_field_mag(self, x, y, z):
+        tot_field = self.calc_field(x, y, z)
+        return np.linalg.norm(tot_field + self.B_bias)
+
+    def calc_field_dir(self, x, y, z):
+        tot_field = self.calc_field(x, y, z)
+        return atan2(tot_field[1], tot_field[0])
+                    
     def find_trap_cen(self):
         pass
 
