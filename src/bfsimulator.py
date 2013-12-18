@@ -27,7 +27,7 @@ logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 clear = "\n"*100
 um = 1e-6
 mm = 1e-3
-CONV_THRESH = 0.1 #percent change allowed in f_trans to declare convergence
+CONV_THRESH = 0.01 #percent change allowed in f_trans to declare convergence
 
 class BFieldSimulator():
     def __init__(self, chip = None):
@@ -39,13 +39,14 @@ class BFieldSimulator():
             self.B_bias = np.array((chip['B_xbias'], chip['B_ybias'], chip['B_zbias']))
             self.x_trap = 0
             self.y_trap = 0
-            self.calc_trap_height() #initialize z_trap
-            self.calc_xy()# initialize B_tot_trap
+            self.calc_trap_height() #initialize B_tot_z
+            self.find_z_min() #initialize z_trap
+            self.calc_xy()# initialize B_tot_xy
             self.find_xy_min() #initialize x_trap, y_trap
     
-        self.resolution=100*um # resolution of the plots
-        self.plotleft=0*mm # boundary of plots, made it smaller for small arm trap on 11/6/13
-        self.plotright=10*mm
+        self.resolution=.000025 # resolution of the plots
+        self.plotleft=-1*mm # boundary of plots, made it smaller for small arm trap on 11/6/13
+        self.plotright=1*mm
         self.nhorz = ceil((self.plotright - self.plotleft) / self.resolution)
         self.plottop = 1*mm
         self.plotbottom = -1*mm
@@ -84,20 +85,28 @@ class BFieldSimulator():
  
     def calc_trap_height(self):
         '''Find minimum along z axis through trap center'''
-        self.B_tot_trap = np.zeros(len(self.z_range))
+        self.B_tot_z = np.zeros(len(self.z_range))
         for ii in xrange(len(self.z_range)):
-            self.B_tot_trap[ii] = self.calc_field_mag(self.x_trap, self.y_trap, self.z_range[ii])
-        self.min_index = np.argmin(self.B_tot_trap)           
+            self.B_tot_z[ii] = self.calc_field_mag(self.x_trap, self.y_trap, self.z_range[ii])
+        self.min_index = np.argmin(self.B_tot_z)           
         self.trap_height = self.z_range[self.min_index]
-        self.z_trap = self.trap_height
+        # Initalize z_trap if needed
+        try:
+            self.z_trap
+        except AttributeError:
+            self.z_trap = self.trap_height
 
+    def find_z_min(self):
+        self.min_index = np.argmin(self.B_tot_z)           
+        self.z_trap = self.z_range[self.min_index]
 
     def plot_z(self):
         '''Plot field against z through trap center'''
-        plt.plot(self.z_range*1e3, self.B_tot_trap*1e4)
+        self.calc_trap_height()
+        plt.plot(self.z_range*1e3, self.B_tot_z*1e4)
         plt.xlabel('Z axis (mm)') #Standard axis labelling
         plt.ylabel('Effective |B|, (G)')
-        plt.ylim((1e4*min(self.B_tot_trap),1e4*min(self.B_tot_trap[0], self.B_tot_trap[-1])))
+        # plt.ylim((1e4*min(self.B_tot_z),1e4*min(self.B_tot_z[0], self.B_tot_z[-1])))
         plt.show()
 
     def calc_xz(self):
@@ -110,10 +119,11 @@ class BFieldSimulator():
             
     def plot_xz(self):
         '''Plot field magnitude in xz plane through trap center'''
+        self.calc_xz()
         fig = plt.figure()
         ax = fig.gca(projection='3d')
 
-        ax.plot_surface(self.x*1e3,self.z*1e3,self.B_tot*1e4, rstride=8, cstride=8, alpha=0.3)
+        ax.plot_surface(self.x*1e3,self.z*1e3,self.B_tot_xy*1e4, rstride=8, cstride=8, alpha=0.3)
         plt.xlabel('X axis (mm)')
         plt.ylabel('Z axis (mm)') #standard axis labelling
         ax.set_zlabel('B field (G)')
@@ -121,19 +131,34 @@ class BFieldSimulator():
         
     def calc_xy(self):
         '''Calculate field magnitude in xy plane through trap center'''
-        self.B_tot = np.zeros(self.x.shape)
+        self.B_tot_xy = np.zeros(self.x.shape)
         for coords in np.ndenumerate(self.x):    
-            self.B_tot[coords[0]] = self.calc_field_mag(self.x[coords[0]], 
+            self.B_tot_xy[coords[0]] = self.calc_field_mag(self.x[coords[0]], 
                                                   self.y[coords[0]], 
                                                     self.z_trap)
     def find_xy_min(self):
-        min_ind = np.unravel_index(self.B_tot.argmin(), self.B_tot.shape)
+        min_ind = np.unravel_index(self.B_tot_xy.argmin(), self.B_tot_xy.shape)
         x_ind = min_ind[0]
         y_ind = min_ind[1]
         self.x_trap = self.x[0, y_ind]
         self.y_trap = self.y[x_ind, 0]
         logging.debug('x_trap: %f'%self.x_trap)
         logging.debug('y_trap: %f'%self.y_trap)
+    
+    def plot_xy(self):
+        '''plot field magnitude in xy plane through trap center'''
+        self.calc_xy()
+        fig = plt.figure()
+        ax = fig.gca(projection='3d')
+
+        ax.plot_surface(self.x*1e3,self.y*1e3,self.B_tot_xy*1e4, 
+                        rstride=8, 
+                        cstride=8, 
+                        alpha=0.3)
+        plt.xlabel('X axis (mm)')
+        plt.ylabel('Y axis (mm)') #standard axis labelling
+        ax.set_zlabel('B field (G)')
+        plt.show()
     
     def calc_field(self, x, y, z):
         tot_field = [0,0,0]
@@ -154,70 +179,45 @@ class BFieldSimulator():
                     
     def find_trap_cen(self):
         field_mag = lambda x: self.calc_field_mag(x[0], x[1], x[2])
-        results = minimize(field_mag, (self.x_trap, self.y_trap, self.z_trap), method = 'Nelder-Mead', options = {'disp':True})
+        results = minimize(field_mag, (self.x_trap, self.y_trap, self.z_trap), method = 'BFGS', options = {'disp':True})
         [self.x_trap, self.y_trap, self.z_trap] = results.x
 
-    def analyze_trap(self):
+    def analyze_trap(self, method = '3D'):
         '''Extract trap frequencies, bottom, etc'''
         trap_params = {}
        
-        ## Extract and print frequency
-        # The first part attempts to extract the transverse and longitudinal
-        # frequencies by fitting to a paraboloid and extracting the principal values
-        field_mag_xy = lambda x: self.calc_field_mag(x[0], x[1], self.z_trap)
+        if method == '2D':
+            field_mag_xy = lambda x: self.calc_field_mag(x[0], x[1], self.z_trap)
+            trap_loc = [self.x_trap, self.y_trap]
+        else:
+            field_mag_xy = lambda x: self.calc_field_mag(x[0], x[1], x[2])
+            trap_loc = [self.x_trap, self.y_trap, self.z_trap]
         Hxy = nd.Hessian(field_mag_xy)
-        Principal_Matrix = Hxy([self.x_trap, self.y_trap])
+        Principal_Matrix = Hxy(trap_loc)
         
         self.values, self.vectors = np.linalg.eig(Principal_Matrix)
-        freqs = []
-        for val in self.values:
-            freqs.append((1.2754)*sqrt(abs(val))) #Hz
+        freqs = [(1.2754)*sqrt(abs(val)) for val in self.values]
         self.f_transverse = max(freqs)
         self.f_longitudinal = min(freqs)
         self.omega_transverse = 2*pi*self.f_transverse
         self.omega_longitudinal = 2*pi*self.f_longitudinal
         
         # Try to extract f_z by fitting a parabola to z_range
-        field_mag_z = lambda z: self.calc_field_mag(self.x_trap, self.y_trap, z)
-        Hz = nd.Hessian(field_mag_z)
-        ddBdzz = Hz([self.z_trap])[0][0]
-        self.f_z = 1.2754*sqrt(abs(ddBdzz))
+        if method == '2D':
+            field_mag_z = lambda z: self.calc_field_mag(self.x_trap, self.y_trap, z)
+            Hz = nd.Hessian(field_mag_z)
+            ddBdzz = Hz([self.z_trap])[0][0]
+            self.f_z = 1.2754*sqrt(abs(ddBdzz))
+        else:
+            self.f_z = sorted(freqs)[1]
         self.omega_z = 2*pi*self.f_z
         
-        
-        ## Other Trap Parameters
-        # self.ODT_temp = 1e-6 #Kelvin, a guess
-        # self.f_rad_ODT = 40 #Hz, extracted from Lin
-        # self.f_ax_ODT = .3 #Hz, extracted from Lin
-        
-        # self.AC_trap_temp = (((self.f_z**2 * self.f_longitudinal)
-                        # /(self.f_rad_ODT**2 * self.f_ax_ODT))**(1/3)
-                        # * self.ODT_temp)
-#        cloud_length = (2*1e6*(k_B * AC_trap_temp 
-#                        / (m_Rb87 * omega_longitudinal**2))**.5) #microns
-        # self.cloud_width = (2*1e6*(K_B * self.AC_trap_temp 
-                        # / (M * self.omega_z**2))**.5) #microns
         trap_params['h'] = self.z_trap
         trap_params['f_long'] = self.f_longitudinal
         trap_params['f_trans'] = self.f_transverse
         trap_params['f_z'] = self.f_z
         return trap_params
-                
-        
-    def plot_xy(self):
-        '''plot field magnitude in xy plane through trap center'''
-        fig = plt.figure()
-        ax = fig.gca(projection='3d')
-
-        ax.plot_surface(self.x*1e3,self.y*1e3,self.B_tot*1e4, 
-                        rstride=8, 
-                        cstride=8, 
-                        alpha=0.3)
-        plt.xlabel('X axis (mm)')
-        plt.ylabel('Y axis (mm)') #standard axis labelling
-        ax.set_zlabel('B field (G)')
-        plt.show()
-        
+                       
     def plot_xy_dir(self):
         '''plot field direction in xy plane through trap center'''
         fig = plt.figure()
@@ -240,56 +240,51 @@ class BFieldSimulator():
         plt.colorbar()
         plt.show()
         
-    def find_trap_freq_1D(self):
-        '''Iterate trap analysis until frequencies converge, as they should for quasi-1D trap'''
-        sim_results = self.analyze_trap()
-        f_z_trans_diff = abs(sim_results['f_z'] - sim_results['f_trans']) / sim_results['f_z']
-        n_tries = 1
-        while f_z_trans_diff > CONV_THRESH and n_tries < 10:
-            logging.debug('f_z and f_trans differ by: %2.1f %%'%(f_z_trans_diff*100))
-            logging.debug('x_trap : %2.0f um \ny_trap : %2.0f um \nz_trap : %2.0f um'%(self.x_trap*1e6, self.y_trap*1e6, self.z_trap*1e6))
-            logging.debug('f_long : %2.0f Hz \nf_trans : %2.0f Hz \nf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z']))
-            self.zoom(2)
-            self.calc_trap_height()
-            self.calc_xy()
-            sim_results = self.analyze_trap()
-            last_diff = f_z_trans_diff
-            f_z_trans_diff = abs(sim_results['f_z'] - sim_results['f_trans']) / sim_results['f_z']
-            if abs(last_diff - f_z_trans_diff) < .005:
-                break
-            n_tries += 1
-        logging.debug('f_z and f_trans differ by: %2.1f %%'%(f_z_trans_diff*100))
-        logging.debug('x_trap : %2.0f um \ny_trap : %2.0f um \nz_trap : %2.0f um'%(self.x_trap*1e6, self.y_trap*1e6, self.z_trap*1e6))
-        logging.debug('f_long : %2.0f Hz \nf_trans : %2.0f Hz \nf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z']))
-
-        return sim_results
         
-    def find_trap_freq(self):
+    def find_trap_freq(self, method = '3D', analyze_method = '3D', convcheck = False, debug = False):
         '''Iterate trap analysis until transverse frequency converges'''
         logging.debug('\nxtrap: %e\nytrap: %e'%(self.x_trap, self.y_trap))
         sim_results = self.analyze_trap()
-        f_trans_prev = 0.1 # An unreasonably long frequency to start
-        f_trans_diff = abs(sim_results['f_trans'] - f_trans_prev) / sim_results['f_trans']
-        f_trans_prev = sim_results['f_trans']
-        logging.debug('f_trans_prev and f_trans differ by: %2.1f %%'%(f_trans_diff*100))
+        
+        if method == '1D':
+            error = abs(sim_results['f_z'] - sim_results['f_trans']) / sim_results['f_z']
+        else:
+            f_trans_prev = 0.1 # An unreasonably long frequency to start
+            error = abs(sim_results['f_trans'] - f_trans_prev) / sim_results['f_trans']
+            f_trans_prev = sim_results['f_trans']
+            
+        if debug:
+            self.plot_z()
+            self.plot_xy()
+        
+        logging.debug('f_trans_prev and f_trans differ by: %2.1f %%'%(error*100))
         logging.debug('x_trap : %2.0f um \n\ty_trap : %2.0f um \n\tz_trap : %2.0f um'%(self.x_trap*1e6, self.y_trap*1e6, self.z_trap*1e6))
         logging.debug('f_long : %2.0f Hz \n\tf_trans : %2.0f Hz \n\tf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z']))
         n_tries = 1
-        while f_trans_diff > CONV_THRESH and n_tries < 10:
+        while error > CONV_THRESH and n_tries < 10:
             self.zoom(2) #used to be 4; 11/6/13
             self.find_trap_cen()
 
-            sim_results = self.analyze_trap()
-            last_diff = f_trans_diff
-            f_trans_diff = abs(sim_results['f_trans'] - f_trans_prev) / sim_results['f_trans']
-            f_trans_prev = sim_results['f_trans']
-            logging.debug('f_trans_prev and f_trans differ by: %2.1f %%'%(f_trans_diff*100))
+            sim_results = self.analyze_trap(method = analyze_method)
+            last_error = error
+            if method == '1D':
+                error = abs(sim_results['f_z'] - sim_results['f_trans']) / sim_results['f_z']
+            else:
+                error = abs(sim_results['f_trans'] - f_trans_prev) / sim_results['f_trans']
+                f_trans_prev = sim_results['f_trans']
+                
+            if debug:
+                self.plot_z()
+                self.plot_xy()
+            
+            logging.debug('f_trans_prev and f_trans differ by: %2.1f %%'%(error*100))
             logging.debug('x_trap : %2.0f um \n\ty_trap : %2.0f um \n\tz_trap : %2.0f um'%(self.x_trap*1e6, self.y_trap*1e6, self.z_trap*1e6))
             logging.debug('f_long : %2.0f Hz \n\tf_trans : %2.0f Hz \n\tf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z']))
-
-            if abs(last_diff - f_trans_diff) < .005:
-                print('Not Converging')
-                break
+            
+            if convcheck:
+                if abs(last_error - error) < .005:
+                    print('Not Converging')
+                    break
             n_tries += 1       
         return sim_results
         

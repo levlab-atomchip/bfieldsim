@@ -42,15 +42,15 @@ class HThinWire(Wire):
         return Wire.bfieldcalc(self, x - self.xl, y - self.y0, z - self.z0)
               
 class VThinWire(Wire):
-    def __init__(self, name, length, width, height, current, x0, yd, z0, subwires = 1):
+    def __init__(self, name, length, width, height, current, x0, y0, z0, subwires = 1):
         '''Store internally in the rotated frame'''
         Wire.__init__(self, name, length, width, height, current, subwires)
-        self.xl = yd
-        self.y0 = -1*x0
+        self.x0 = x0
+        self.y0 = y0
         self.z0 = z0
         
     def bfieldcalc(self,x,y,z):
-        rot_frame_field = Wire.bfieldcalc(self, x - self.xl, y - self.y0, z - self.z0)
+        rot_frame_field = Wire.bfieldcalc(self, y - self.y0, self.x0 - x, z - self.z0)
         return (-1*rot_frame_field[1], 0, rot_frame_field[2])
       
         
@@ -122,10 +122,10 @@ class HThickFinWire(ThickFinWire):
 class VThickFinWire(ThickFinWire):
     '''stored in the rotated frame; never access properties directly, write appropriate getters'''
     def __init__(self, name, length, width, height, current, x0,y0,z0):
-        ThickFinWire.__init__(self, name, length, width, height, current, y0,-1*x0,z0)
+        ThickFinWire.__init__(self, name, length, width, height, current, x0, y0,z0)
     def bfieldcalc(self, x, y, z):
         '''Need to rotate the x, y axes for this...'''
-        rot_frame_field = ThickFinWire.bfieldcalc(self, x - self.x0, y, z - self.z0)
+        rot_frame_field = ThickFinWire.bfieldcalc(self, y - self.y0, self.x0 - x, z - self.z0)
         return (-1*rot_frame_field[1], 0, rot_frame_field[2])
 
 #Useful constants for RectWire
@@ -173,9 +173,8 @@ class HRectWire(RectWire):
         return RectWire.bfieldcalc(self, x, y, z)
         
 class VRectWire(RectWire):
-    '''stored in the rotated frame; never access properties directly, write appropriate getters'''
     def __init__(self, name, length, width, height, current, x0,y0,z0, subwires = 1):
-        RectWire.__init__(self, name, length, width, height, current, y0,-1*x0,z0)
+        RectWire.__init__(self, name, length, width, height, current, x0,y0,z0)
     def bfieldcalc(self, x, y, z):
         '''Need to rotate the x, y axes for this...'''
         rot_frame_field = RectWire.bfieldcalc(self, x, y, z)
