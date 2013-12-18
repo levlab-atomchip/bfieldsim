@@ -9,6 +9,8 @@ from math import pi, sqrt, atan, atanh, log
 import numpy as np
 from acmconstants import MU_0
 
+
+
 class Wire():
     def __init__(self, name, length, width, height, current, subwires = 1):
         self.name = name
@@ -16,15 +18,15 @@ class Wire():
         self.width = width
         self.height = height
         self.current = current
+        self.const_G = MU_0*current/(4*pi) #Remarkably, this provided no speedup!
       
     def bfieldcalc(self,x,y,z):
         '''Based on a finite thin wire parallel to x axis and centered on the y-axis in the x-y plane'''
         xL = x
         xR = x - self.length
-        const_G=MU_0*self.current/(4*pi)
         
         beta = z**2 + y**2
-        B_G=const_G*(xL/(beta*sqrt(beta+
+        B_G=self.const_G*(xL/(beta*sqrt(beta+
                     xL**2))-xR/(beta*sqrt(beta+xR**2)))
         return (0, -1*B_G*z,B_G*y)
 
@@ -125,6 +127,9 @@ class VThickFinWire(ThickFinWire):
         '''Need to rotate the x, y axes for this...'''
         rot_frame_field = ThickFinWire.bfieldcalc(self, x - self.x0, y, z - self.z0)
         return (-1*rot_frame_field[1], 0, rot_frame_field[2])
+
+#Useful constants for RectWire
+
         
 class RectWire(Wire):
     '''Wire of finite length, width, and height'''
