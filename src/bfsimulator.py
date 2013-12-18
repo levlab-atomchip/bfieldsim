@@ -19,6 +19,7 @@ import matplotlib.pyplot as plt
 from math import pi, sqrt, atan2, ceil
 from acmconstants import K_B, M
 import logging
+from scipy.optimize import minimize
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
@@ -118,6 +119,17 @@ class BFieldSimulator():
             self.B_tot[coords[0]] = self.calc_field_mag(self.x[coords[0]], 
                                                   self.y[coords[0]], 
                                                     self.z_trap)
+    def find_xy_min(self):
+        self.calc_xy()
+        min_ind = np.unravel_index(self.B_tot.argmin(), self.B_tot.shape)
+        x_ind = min_ind[0]
+        # print 'x_ind: %d'%x_ind
+        y_ind = min_ind[1]
+        # print 'y_ind: %d'%y_ind
+        self.x_trap = self.x[0, y_ind]
+        self.y_trap = self.y[x_ind, 0]
+        print 'x_trap: %f'%self.x_trap
+        print 'y_trap: %f'%self.y_trap
     
     def calc_field(self, x, y, z):
         tot_field = [0,0,0]
@@ -137,7 +149,9 @@ class BFieldSimulator():
         return atan2(tot_field[1], tot_field[0])
                     
     def find_trap_cen(self):
-        pass
+        field_mag = lambda x: self.calc_field_mag(x[0], x[1], x[2])
+        results = minimize(field_mag, (self.x_trap, self.y_trap, self.z_trap), options = {'disp':True})
+        return results.x
 
     def analyze_trap(self):
         '''Extract trap frequencies, bottom, etc'''
@@ -291,6 +305,7 @@ class BFieldSimulator():
             f_trans_diff = abs(sim_results['f_trans'] - f_trans_prev) / sim_results['f_trans']
             f_trans_prev = sim_results['f_trans']
             if abs(last_diff - f_trans_diff) < .005:
+                print('Not Converging')
                 break
             n_tries += 1
         logging.debug('f_trans_prev and f_trans differ by: %2.1f %%'%(f_trans_diff*100))
