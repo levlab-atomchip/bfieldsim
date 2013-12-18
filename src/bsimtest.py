@@ -14,6 +14,8 @@ import logging
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
+FAIL_THRESH = 0.1
+
 class TestAgainstLit(unittest.TestCase):
 
     def setUp(self):
@@ -109,17 +111,19 @@ class TestAgainstLit(unittest.TestCase):
             print '%s Chip:'%chip['name']
             self.bfsim.set_chip(chip)
             sim_results = self.bfsim.find_trap_freq()
+            
             f_z_error = abs(sim_results['f_z'] - chip['f_z']) / chip['f_z']
             f_trans_error = abs(sim_results['f_trans'] - chip['f_trans']) / chip['f_trans']
             f_long_error = abs(sim_results['f_long'] - chip['f_long']) / chip['f_long']
             height_error = abs(sim_results['h'] - chip['h']) / chip['h']
-            self.assertLessEqual(f_z_error, 0.10, 
+            
+            self.assertLessEqual(f_z_error, FAIL_THRESH, 
                 'Vertical Frequency:\nTrue: %2.0f Hz\nSim:  %2.0f Hz'%(chip['f_z'], sim_results['f_z']))
-            self.assertLessEqual(f_trans_error, 0.10, 
+            self.assertLessEqual(f_trans_error, FAIL_THRESH, 
                 'Transverse Frequency:\nTrue: %2.0f Hz\nSim:  %2.0f Hz'%(chip['f_trans'], sim_results['f_trans']))
 #            self.assertLessEqual(f_long_error, 0.10,
 #                'Longitudinal Frequency:\nTrue: %2.0f Hz\nSim:  %2.0f Hz'%(chip['f_long'], sim_results['f_long']))
-            self.assertLessEqual(height_error, 0.10,
+            self.assertLessEqual(height_error, FAIL_THRESH,
                 'Trap Height:\nTrue: %e\nSim:  %e'%(chip['h'], sim_results['h']))
             print 'OK'
 

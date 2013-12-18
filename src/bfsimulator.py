@@ -22,7 +22,7 @@ import logging
 from scipy.optimize import minimize
 import numdifftools as nd
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
 
 clear = "\n"*100
 um = 1e-6
@@ -197,7 +197,7 @@ class BFieldSimulator():
 #                        / (m_Rb87 * omega_longitudinal**2))**.5) #microns
         # self.cloud_width = (2*1e6*(K_B * self.AC_trap_temp 
                         # / (M * self.omega_z**2))**.5) #microns
-        trap_params['h'] = self.trap_height
+        trap_params['h'] = self.z_trap
         trap_params['f_long'] = self.f_longitudinal
         trap_params['f_trans'] = self.f_transverse
         trap_params['f_z'] = self.f_z
@@ -242,10 +242,7 @@ class BFieldSimulator():
         
     def find_trap_freq_1D(self):
         '''Iterate trap analysis until frequencies converge, as they should for quasi-1D trap'''
-        self.calc_trap_height()
-        self.calc_xy()
         sim_results = self.analyze_trap()
-        
         f_z_trans_diff = abs(sim_results['f_z'] - sim_results['f_trans']) / sim_results['f_z']
         n_tries = 1
         while f_z_trans_diff > CONV_THRESH and n_tries < 10:
@@ -255,8 +252,6 @@ class BFieldSimulator():
             self.zoom(2)
             self.calc_trap_height()
             self.calc_xy()
-            self.plot_z()
-            self.plot_xy()
             sim_results = self.analyze_trap()
             last_diff = f_z_trans_diff
             f_z_trans_diff = abs(sim_results['f_z'] - sim_results['f_trans']) / sim_results['f_z']
@@ -271,32 +266,31 @@ class BFieldSimulator():
         
     def find_trap_freq(self):
         '''Iterate trap analysis until transverse frequency converges'''
-        self.calc_trap_height()
-        self.calc_xy()
         logging.debug('\nxtrap: %e\nytrap: %e'%(self.x_trap, self.y_trap))
         sim_results = self.analyze_trap()
         f_trans_prev = 0.1 # An unreasonably long frequency to start
         f_trans_diff = abs(sim_results['f_trans'] - f_trans_prev) / sim_results['f_trans']
         f_trans_prev = sim_results['f_trans']
+        logging.debug('f_trans_prev and f_trans differ by: %2.1f %%'%(f_trans_diff*100))
+        logging.debug('x_trap : %2.0f um \n\ty_trap : %2.0f um \n\tz_trap : %2.0f um'%(self.x_trap*1e6, self.y_trap*1e6, self.z_trap*1e6))
+        logging.debug('f_long : %2.0f Hz \n\tf_trans : %2.0f Hz \n\tf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z']))
         n_tries = 1
         while f_trans_diff > CONV_THRESH and n_tries < 10:
-            logging.debug('f_trans_prev and f_trans differ by: %2.1f %%'%(f_trans_diff*100))
-            logging.debug('x_trap : %2.0f um \ny_trap : %2.0f um \nz_trap : %2.0f um'%(self.x_trap*1e6, self.y_trap*1e6, self.z_trap*1e6))
-            logging.debug('f_long : %2.0f Hz \nf_trans : %2.0f Hz \nf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z']))
-
             self.zoom(2) #used to be 4; 11/6/13
-            self.calc_trap_height()
-            self.calc_xy()
+            self.find_trap_cen()
+
             sim_results = self.analyze_trap()
             last_diff = f_trans_diff
             f_trans_diff = abs(sim_results['f_trans'] - f_trans_prev) / sim_results['f_trans']
             f_trans_prev = sim_results['f_trans']
+            logging.debug('f_trans_prev and f_trans differ by: %2.1f %%'%(f_trans_diff*100))
+            logging.debug('x_trap : %2.0f um \n\ty_trap : %2.0f um \n\tz_trap : %2.0f um'%(self.x_trap*1e6, self.y_trap*1e6, self.z_trap*1e6))
+            logging.debug('f_long : %2.0f Hz \n\tf_trans : %2.0f Hz \n\tf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z']))
+
             if abs(last_diff - f_trans_diff) < .005:
                 print('Not Converging')
                 break
-            n_tries += 1
-        logging.debug('f_trans_prev and f_trans differ by: %2.1f %%'%(f_trans_diff*100))
-        
+            n_tries += 1       
         return sim_results
         
 if __name__ == '__main__':
