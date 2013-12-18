@@ -9,7 +9,7 @@ import unittest
 import bfsimulator
 from acmconstants import MU_0
 from math import pi, sqrt
-from acwires import HWire, VWire, NWire, HThinWire, VThinWire
+from acwires import HThinWire, VThinWire
 import logging
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
@@ -108,29 +108,7 @@ class TestAgainstLit(unittest.TestCase):
         for chip in self.lit_chips:
             print '%s Chip:'%chip['name']
             self.bfsim.set_chip(chip)
-#            self.bfsim.calc_trap_height()
-#            self.bfsim.calc_xy()
-##            logging.debug('\nxtrap: %e\nytrap: %e'%(self.bfsim.x_trap, self.bfsim.y_trap))
-##            self.bfsim.plot_z()
-##            self.bfsim.plot_xy()
-#            sim_results = self.bfsim.analyze_trap()
-#            
-#            f_z_trans_diff = abs(sim_results['f_z'] - sim_results['f_trans']) / sim_results['f_z']
-#            n_tries = 1
-#            while f_z_trans_diff > 0.05 and n_tries < 10:
-#                logging.debug('f_z and f_trans differ by: %2.1f %%'%(f_z_trans_diff*100))
-#                self.bfsim.zoom(4)
-#                self.bfsim.calc_xy()
-#                sim_results = self.bfsim.analyze_trap()
-#                f_z_trans_diff = abs(sim_results['f_z'] - sim_results['f_trans']) / sim_results['f_z']
-#                n_tries += 1
-#            logging.debug('\nxtrap: %e\nytrap: %e'%(self.bfsim.x_trap, self.bfsim.y_trap))
             sim_results = self.bfsim.find_trap_freq()
-#            self.bfsim.plot_xy()
-#            sim_results = self.bfsim.analyze_trap()
-#            print self.bfsim.B_tot
-#            print self.bfsim.B_tot.shape
-#            logging.debug('\nxtrap: %e\nytrap: %e'%(self.bfsim.x_trap, self.bfsim.y_trap))
             f_z_error = abs(sim_results['f_z'] - chip['f_z']) / chip['f_z']
             f_trans_error = abs(sim_results['f_trans'] - chip['f_trans']) / chip['f_trans']
             f_long_error = abs(sim_results['f_long'] - chip['f_long']) / chip['f_long']

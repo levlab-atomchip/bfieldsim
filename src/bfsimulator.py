@@ -22,7 +22,7 @@ import logging
 from scipy.optimize import minimize
 import numdifftools as nd
 
-logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
+logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
 clear = "\n"*100
 um = 1e-6
@@ -160,13 +160,7 @@ class BFieldSimulator():
     def analyze_trap(self):
         '''Extract trap frequencies, bottom, etc'''
         trap_params = {}
-        min_ind = np.unravel_index(self.B_tot.argmin(), self.B_tot.shape)
-        x_ind = min_ind[0]
-        # print 'x_ind: %d'%x_ind
-        y_ind = min_ind[1]
-        # print 'y_ind: %d'%y_ind
-        self.find_trap_cen()
-        
+       
         ## Extract and print frequency
         # The first part attempts to extract the transverse and longitudinal
         # frequencies by fitting to a paraboloid and extracting the principal values
@@ -256,8 +250,8 @@ class BFieldSimulator():
         n_tries = 1
         while f_z_trans_diff > CONV_THRESH and n_tries < 10:
             logging.debug('f_z and f_trans differ by: %2.1f %%'%(f_z_trans_diff*100))
-            print 'x_trap : %2.0f um \ny_trap : %2.0f um \nz_trap : %2.0f um'%(self.x_trap*1e6, self.y_trap*1e6, self.z_trap*1e6)
-            print 'f_long : %2.0f Hz \nf_trans : %2.0f Hz \nf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z'])
+            logging.debug('x_trap : %2.0f um \ny_trap : %2.0f um \nz_trap : %2.0f um'%(self.x_trap*1e6, self.y_trap*1e6, self.z_trap*1e6))
+            logging.debug('f_long : %2.0f Hz \nf_trans : %2.0f Hz \nf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z']))
             self.zoom(2)
             self.calc_trap_height()
             self.calc_xy()
@@ -270,8 +264,8 @@ class BFieldSimulator():
                 break
             n_tries += 1
         logging.debug('f_z and f_trans differ by: %2.1f %%'%(f_z_trans_diff*100))
-        print 'x_trap : %2.0f um \ny_trap : %2.0f um \nz_trap : %2.0f um'%(self.x_trap*1e6, self.y_trap*1e6, self.z_trap*1e6)
-        print 'f_long : %2.0f Hz \nf_trans : %2.0f Hz \nf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z'])
+        logging.debug('x_trap : %2.0f um \ny_trap : %2.0f um \nz_trap : %2.0f um'%(self.x_trap*1e6, self.y_trap*1e6, self.z_trap*1e6))
+        logging.debug('f_long : %2.0f Hz \nf_trans : %2.0f Hz \nf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z']))
 
         return sim_results
         
@@ -287,8 +281,8 @@ class BFieldSimulator():
         n_tries = 1
         while f_trans_diff > CONV_THRESH and n_tries < 10:
             logging.debug('f_trans_prev and f_trans differ by: %2.1f %%'%(f_trans_diff*100))
-            print 'x_trap : %2.0f um \ny_trap : %2.0f um \nz_trap : %2.0f um'%(self.x_trap*1e6, self.y_trap*1e6, self.z_trap*1e6)
-            print 'f_long : %2.0f Hz \nf_trans : %2.0f Hz \nf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z'])
+            logging.debug('x_trap : %2.0f um \ny_trap : %2.0f um \nz_trap : %2.0f um'%(self.x_trap*1e6, self.y_trap*1e6, self.z_trap*1e6))
+            logging.debug('f_long : %2.0f Hz \nf_trans : %2.0f Hz \nf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z']))
 
             self.zoom(2) #used to be 4; 11/6/13
             self.calc_trap_height()
