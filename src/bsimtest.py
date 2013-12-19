@@ -19,6 +19,7 @@ FAIL_THRESH = 0.1
 class TestAgainstLit(unittest.TestCase):
 
     def setUp(self):
+        '''Define chip parameters for a variety of test cases taken from the literature.'''
         schneider = {'name' : 'Schneider',
                      'f_long' : 18, 
                      'f_trans' : 51,
@@ -94,19 +95,20 @@ class TestAgainstLit(unittest.TestCase):
         self.bfsim = bfsimulator.BFieldSimulator()
         
     def make_chip_wires(self, chip):
+        '''Define wirespecs from chip parameters.'''
         hwires = []
         vwires = []
-        #(name, length, width, height, current, xl, y0, z0, subwires = 1):
-        hwires.append(HThickFinWire('Central Test Wire', chip['l'], 100e-6, 5e-6, chip['I'], 
-                             -0.5*chip['l'],0, 0))
+        #input to wire definition is of form: (name, length, width, height, current, xl, y0, z0, subwires = 1)
+        hwires.append(HRectWire('Central Test Wire', chip['l'], 100e-6, 5e-6, chip['I'], -0.5*chip['l'],0, 0))
         
-        vwires.append(VThickFinWire('Arm 1', 10*chip['l'], 100e-6, 5e-6, chip['I'], -0.5*chip['l'], -10*chip['l'], 0))
-        vwires.append(VThickFinWire('Arm 2', 10*chip['l'], 100e-6, 5e-6, chip['I'], 0.5*chip['l'], 0, 0))
+        vwires.append(VRectWire('Arm 1', 10*chip['l'], 100e-6, 5e-6, chip['I'], -0.5*chip['l'], -10*chip['l'], 0))
+        vwires.append(VRectWire('Arm 2', 10*chip['l'], 100e-6, 5e-6, chip['I'], 0.5*chip['l'], 0, 0))
         
         chip['wirespecs'] = hwires + vwires
         return chip
 
     def test_against_lit(self):
+        '''Run the simulator on each chip and check whether frequencies and trap heights agree.'''
         for chip in self.lit_chips:
             print '%s Chip:'%chip['name']
             self.bfsim.set_chip(chip)

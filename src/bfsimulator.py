@@ -84,12 +84,13 @@ class BFieldSimulator():
         self.z_spacing = self.resolution #meters
  
     def calc_trap_height(self):
-        '''Find minimum along z axis through trap center'''
+        '''Find B field magnitude along z axis through trap center'''
         self.B_tot_z = np.zeros(len(self.z_range))
         for ii in xrange(len(self.z_range)):
             self.B_tot_z[ii] = self.calc_field_mag(self.x_trap, self.y_trap, self.z_range[ii])
 
     def find_z_min(self):
+        '''Find minimum value of B field magnitude along z axis through trap center'''
         self.min_index = np.argmin(self.B_tot_z)           
         self.z_trap = self.z_range[self.min_index]
 
@@ -130,6 +131,7 @@ class BFieldSimulator():
                                                   self.y[coords[0]], 
                                                     self.z_trap)
     def find_xy_min(self):
+        '''Find minimum value of B field magnitude in xy plane through trap center'''
         min_ind = np.unravel_index(self.B_tot_xy.argmin(), self.B_tot_xy.shape)
         x_ind = min_ind[0]
         y_ind = min_ind[1]
@@ -154,6 +156,7 @@ class BFieldSimulator():
         plt.show()
     
     def calc_field(self, x, y, z):
+        '''Calculate total B field due to all wires at a point'''
         tot_field = [0,0,0]
         for wire in self.wirespecs:
             this_field = wire.bfieldcalc(x, y, z)
@@ -163,32 +166,35 @@ class BFieldSimulator():
         return np.array(tot_field)
     
     def calc_field_mag(self, x, y, z):
+        '''Calculate total B field magnitude due to all wires at a point'''
         tot_field = self.calc_field(x, y, z)
         return np.linalg.norm(tot_field + self.B_bias)
 
     def calc_field_dir(self, x, y, z):
+        '''Calculate direction in xy plane of B field due to all wires, at a point'''
         tot_field = self.calc_field(x, y, z)
         return atan2(tot_field[1], tot_field[0])
                     
-    def find_trap_cen(self, method='3D'):
+    def find_trap_cen(self, method='3D', min_method = 'Nelder-Mead'):
+        '''Find the location of the minimum B field magnitude'''
         if method == '1+2D':
             field_mag = lambda x: self.calc_field_mag(self.x_trap, self.y_trap, x)
-            results = minimize(field_mag, self.z_trap, method = 'BFGS', options = {'disp':True})
+            results = minimize(field_mag, self.z_trap, method = min_method, options = {'disp':True})
             [self.z_trap] = results.x
             field_mag = lambda x: self.calc_field_mag(x[0], x[1], self.z_trap)
-            results = minimize(field_mag, (self.x_trap, self.y_trap), method = 'BFGS', options = {'disp':True})
+            results = minimize(field_mag, (self.x_trap, self.y_trap), method = min_method, options = {'disp':True})
             [self.x_trap, self.y_trap] = results.x
         elif method == '1D':
             field_mag = lambda x: self.calc_field_mag(self.x_trap, self.y_trap, x)
-            results = minimize(field_mag, self.z_trap, method = 'BFGS', options = {'disp':True})
+            results = minimize(field_mag, self.z_trap, method = min_method, options = {'disp':True})
             [self.z_trap] = results.x
         else:
             field_mag = lambda x: self.calc_field_mag(x[0], x[1], x[2])
-            results = minimize(field_mag, (self.x_trap, self.y_trap, self.z_trap), method = 'Nelder-Mead', options = {'disp':True})
+            results = minimize(field_mag, (self.x_trap, self.y_trap, self.z_trap), method = min_method, options = {'disp':True})
             [self.x_trap, self.y_trap, self.z_trap] = results.x
 
     def analyze_trap(self, method = '3D'):
-        '''Extract trap frequencies, bottom, etc'''
+        '''Extract trap frequencies'''
         trap_params = {}
        
         if method == '2D':
@@ -212,7 +218,6 @@ class BFieldSimulator():
         self.omega_transverse = 2*pi*self.f_transverse
         self.omega_longitudinal = 2*pi*self.f_longitudinal
         
-        # Try to extract f_z by fitting a parabola to z_range
         if method == '2D':
             field_mag_z = lambda z: self.calc_field_mag(self.x_trap, self.y_trap, z)
             Hz = nd.Hessian(field_mag_z)
@@ -251,7 +256,12 @@ class BFieldSimulator():
         plt.show()
         
         
-    def find_trap_freq(self, method = '3D', analyze_method = '3D', trap_find_method = '3D', convcheck = False, debug = False):
+    def find_trap_freq(self, method = '3D', 
+                            analyze_method = '3D', 
+                            trap_find_method = '3D', 
+                            min_method = 'Nelder-Mead', 
+                            convcheck = False, 
+                            debug = False):
         '''Iterate trap analysis until transverse frequency converges'''
         logging.debug('\nxtrap: %e\nytrap: %e'%(self.x_trap, self.y_trap))
         sim_results = self.analyze_trap()
@@ -261,7 +271,7 @@ class BFieldSimulator():
             logging.debug('f_trans and f_z differ by: %2.1f %%'%(error*100))
 
         else:
-            f_trans_prev = 0.1 # An unreasonably long frequency to start
+            f_trans_prev = 0.1 # An unreasonably low frequency to start
             error = abs(sim_results['f_trans'] - f_trans_prev) / sim_results['f_trans']
             f_trans_prev = sim_results['f_trans']
             logging.debug('f_trans_prev and f_trans differ by: %2.1f %%'%(error*100))
@@ -276,7 +286,7 @@ class BFieldSimulator():
         n_tries = 1
         while error > CONV_THRESH and n_tries < 10:
             self.zoom(2) #used to be 4; 11/6/13
-            self.find_trap_cen(method = trap_find_method)
+            self.find_trap_cen(method = trap_find_method, min_method = min_method)
 
             sim_results = self.analyze_trap()
             last_error = error
