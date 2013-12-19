@@ -19,7 +19,9 @@ FAIL_THRESH = 0.1
 class TestAgainstLit(unittest.TestCase):
 
     def setUp(self):
-        '''Define chip parameters for a variety of test cases taken from the literature.'''
+        '''Define chip parameters for a variety of test cases taken from the literature.
+        
+        The simulations fail on 'schneider' and treutlein_z3, but pass the rest.'''
         schneider = {'name' : 'Schneider',
                      'f_long' : 18, 
                      'f_trans' : 51,
@@ -112,7 +114,7 @@ class TestAgainstLit(unittest.TestCase):
         for chip in self.lit_chips:
             print '%s Chip:'%chip['name']
             self.bfsim.set_chip(chip)
-            sim_results = self.bfsim.find_trap_freq(method = '3D', trap_find_method = '3D', debug = False)
+            sim_results = self.bfsim.find_trap_freq(method = '3D', trap_find_method = '3D', min_method = 'Nelder-Mead', debug = False)
             
             f_z_error = abs(sim_results['f_z'] - chip['f_z']) / chip['f_z']
             f_trans_error = abs(sim_results['f_trans'] - chip['f_trans']) / chip['f_trans']
@@ -125,10 +127,10 @@ class TestAgainstLit(unittest.TestCase):
                 # 'Vertical Frequency:\nTrue: %2.0f Hz\nSim:  %2.0f Hz'%(chip['f_z'], sim_results['f_z']))
             self.assertLessEqual(f_trans_error, FAIL_THRESH, 
                 'Transverse Frequency:\nTrue: %2.0f Hz\nSim:  %2.0f Hz'%(chip['f_trans'], sim_results['f_trans']))
-            # self.assertLessEqual(f_long_error, FAIL_THRESH,
-               # 'Longitudinal Frequency:\nTrue: %2.0f Hz\nSim:  %2.0f Hz'%(chip['f_long'], sim_results['f_long']))
-            # self.assertLessEqual(height_error, FAIL_THRESH,
-                # 'Trap Height:\nTrue: %e\nSim:  %e'%(chip['h'], sim_results['h']))
+            self.assertLessEqual(f_long_error, FAIL_THRESH,
+               'Longitudinal Frequency:\nTrue: %2.0f Hz\nSim:  %2.0f Hz'%(chip['f_long'], sim_results['f_long']))
+            self.assertLessEqual(height_error, FAIL_THRESH,
+                'Trap Height:\nTrue: %e\nSim:  %e'%(chip['h'], sim_results['h']))
             print 'OK'
 
             

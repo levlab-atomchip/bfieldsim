@@ -164,8 +164,11 @@ class HRectWire(RectWire):
         
 class VRectWire(RectWire):
     def __init__(self, name, length, width, height, current, x0,y0,z0, subwires = 1):
+        '''Limits are stored as in rotated frame'''
         RectWire.__init__(self, name, length, width, height, current, x0,y0,z0)
+        self.xlims = [y0, y0 + self.length]
+        self.ylims = [-1*x0, -1*(x0 + self.width)]
     def bfieldcalc(self, x, y, z):
         '''Rotate the coordinates to use the basic field calculator, then rotate the field vector back.'''
-        rot_frame_field = RectWire.bfieldcalc(self, x, y, z)
+        rot_frame_field = RectWire.bfieldcalc(self, y, -1*x, z)
         return (-1*rot_frame_field[1], 0, rot_frame_field[2])
