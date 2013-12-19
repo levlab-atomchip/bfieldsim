@@ -8,8 +8,7 @@ Created on 2013-07-12
 from acwires import HThinWire, VThinWire, HRectWire, VRectWire
 
 #from AtomChip import *
-
-n=1 #number of subwires
+n=1 #number of subwires, not important
 
 I_central = -2.5
 I_GU1 = 0
@@ -23,25 +22,13 @@ I_GL3 = 0
 I_GL4 = 0.5
 I_GL5 = 0
 
-# I_central = 0
-# I_GU1 = 0
-# I_GU2 = 0
-# I_GU3 = 0
-# I_GU4 = 0
-# I_GU5 = 0
-# I_GL1 = 0
-# I_GL2 = 0
-# I_GL3 = 0
-# I_GL4 = 0
-# I_GL5 = 0
-
 I_XBias = 3 #positive is field towards BECy
 # I_XBias = 0
 I_YBias = 0
 I_ZBias = 0
 
-I_Macro_Bias_1 = 27
-I_Macro_Bias_2 = 27
+I_Macro_Bias_1 = 20
+I_Macro_Bias_2 = 20
 I_Macro_Central = 0
 I_Macro_Axial_1 = 0
 I_Macro_Axial_2 = 0
@@ -60,15 +47,32 @@ B_ybias = I_YBias * ybiascal # T
 B_zbias = I_ZBias * zbiascal # T
 
 # Height Targeting bias selection
-height_target = 500e-6
-B_ybias = 2e-3*I_central*1e-4 / height_target
-print("By Bias: %2.2f G"%(B_ybias*1e4))
+# height_target = 350e-6
+# B_ybias = 2e-3*I_central*1e-4 / height_target
+# print("By Bias: %2.2f G"%(B_ybias*1e4))
 
-# Define chip geometry
+## Define chip geometry
+# origin is the middle of the center wire, at the surface of the chip substrate.
+# z axis points towards floor, x axis is odt axis, y axis is imaging axis
 
-mww = 100e-6
-mwh = 5e-6
-mwz = 0
+# A bottom up view of the macrowires
+
+#     |       |       |
+# ------------------------macro_bias_1
+#     |       |       |
+# ------------------------macro_central
+#     |       |       |
+# ------------------------macro_bias_2
+#     |       |       |
+#     |       |       |
+#     |       |       |
+#   macro_   macro_   macro_
+#   axial_1  dimple   axial_2
+
+
+mww = 100e-6 #microwire width
+mwh = 5e-6   #microwire height
+mwz = 0      #microwire bottom
 
 macro_left_H = -2.5e-2
 macro_left_ax1 = -0.685e-2
@@ -269,7 +273,7 @@ vwires.append(VRectWire('MacroDimple',               # name
                      
 allwires = hwires + vwires + nwires
 
-atomchip_v4 = {'wirespecs' : allwires,
+atomchip =  {'wirespecs' : allwires,
                'B_xbias' : B_xbias,
                'B_ybias' : B_ybias,
                'B_zbias' : B_zbias}
@@ -277,16 +281,8 @@ atomchip_v4 = {'wirespecs' : allwires,
 if __name__ == '__main__':
     import bfsimulator
     b_f_sim = bfsimulator.BFieldSimulator()
-    b_f_sim.set_chip(atomchip_v4)
-    b_f_sim.calc_trap_height()
-    b_f_sim.plot_z()
-    # b_f_sim.zoom(1.5, [0,0,b_f_sim.z_trap])
-    # b_f_sim.calc_xy()
-    # b_f_sim.plot_xy()
-    sim_results = b_f_sim.find_trap_freq()
+    b_f_sim.set_chip(atomchip)
+    sim_results = b_f_sim.find_trap_freq(debug = False)
     print 'x_trap : %2.0f um \ny_trap : %2.0f um \nz_trap : %2.0f um'%(b_f_sim.x_trap*1e6, b_f_sim.y_trap*1e6, b_f_sim.z_trap*1e6)
     print 'f_long : %2.0f Hz \nf_trans : %2.0f Hz \nf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z'])
-#    b_f_sim.set_chip(atomchip_v3)
     b_f_sim.plot_xy()
-    # b_f_sim.calc_xy()
-    # b_f_sim.plot_xy_coupling()
