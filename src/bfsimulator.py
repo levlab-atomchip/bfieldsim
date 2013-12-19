@@ -31,19 +31,6 @@ CONV_THRESH = 0.01 #percent change allowed in f_trans to declare convergence
 
 class BFieldSimulator():
     def __init__(self, chip = None):
-        
-        if chip is not None:
-            self.wirespecs = chip['wirespecs'] #this is a bad kludge
-            self.wirespecs = [wire for wire in self.wirespecs if wire.current != 0]
-            self.B_ybias = chip['B_ybias']
-            self.B_bias = np.array((chip['B_xbias'], chip['B_ybias'], chip['B_zbias']))
-            self.x_trap = 0
-            self.y_trap = 0
-            self.calc_trap_height() #initialize B_tot_z
-            self.find_z_min() #initialize z_trap
-            self.calc_xy()# initialize B_tot_xy
-            self.find_xy_min() #initialize x_trap, y_trap
-    
         self.resolution=.000025 # resolution of the plots
         self.plotleft=-1*mm # boundary of plots, made it smaller for small arm trap on 11/6/13
         self.plotright=1*mm
@@ -58,6 +45,19 @@ class BFieldSimulator():
         self.nz = ceil((self.plothigh - self.plotlow) / self.resolution)
         self.z_range = np.linspace(self.plothigh,self.plotlow,self.nz) #meters
         self.z_spacing = self.z_range[1]-self.z_range[0] #meters
+        
+        if chip is not None:
+            self.wirespecs = chip['wirespecs'] #this is a bad kludge
+            self.wirespecs = [wire for wire in self.wirespecs if wire.current != 0]
+            self.B_ybias = chip['B_ybias']
+            self.B_bias = np.array((chip['B_xbias'], chip['B_ybias'], chip['B_zbias']))
+            self.x_trap = 0
+            self.y_trap = 0
+            self.calc_trap_height() #initialize B_tot_z
+            self.find_z_min() #initialize z_trap
+            self.calc_xy()# initialize B_tot_xy
+            self.find_xy_min() #initialize x_trap, y_trap
+    
         
     def set_chip(self, chip):
         '''Choose a chip configuration, defined in some other file via wirespecs'''
@@ -88,13 +88,6 @@ class BFieldSimulator():
         self.B_tot_z = np.zeros(len(self.z_range))
         for ii in xrange(len(self.z_range)):
             self.B_tot_z[ii] = self.calc_field_mag(self.x_trap, self.y_trap, self.z_range[ii])
-        self.min_index = np.argmin(self.B_tot_z)           
-        self.trap_height = self.z_range[self.min_index]
-        # Initalize z_trap if needed
-        try:
-            self.z_trap
-        except AttributeError:
-            self.z_trap = self.trap_height
 
     def find_z_min(self):
         self.min_index = np.argmin(self.B_tot_z)           
@@ -106,7 +99,7 @@ class BFieldSimulator():
         plt.plot(self.z_range*1e3, self.B_tot_z*1e4)
         plt.xlabel('Z axis (mm)') #Standard axis labelling
         plt.ylabel('Effective |B|, (G)')
-        # plt.ylim((1e4*min(self.B_tot_z),1e4*min(self.B_tot_z[0], self.B_tot_z[-1])))
+        plt.ylim((1e4*min(self.B_tot_z),1e4*min(self.B_tot_z[0], self.B_tot_z[-1])))
         plt.show()
 
     def calc_xz(self):
@@ -177,10 +170,22 @@ class BFieldSimulator():
         tot_field = self.calc_field(x, y, z)
         return atan2(tot_field[1], tot_field[0])
                     
-    def find_trap_cen(self):
-        field_mag = lambda x: self.calc_field_mag(x[0], x[1], x[2])
-        results = minimize(field_mag, (self.x_trap, self.y_trap, self.z_trap), method = 'BFGS', options = {'disp':True})
-        [self.x_trap, self.y_trap, self.z_trap] = results.x
+    def find_trap_cen(self, method='3D'):
+        if method == '1+2D':
+            field_mag = lambda x: self.calc_field_mag(self.x_trap, self.y_trap, x)
+            results = minimize(field_mag, self.z_trap, method = 'BFGS', options = {'disp':True})
+            [self.z_trap] = results.x
+            field_mag = lambda x: self.calc_field_mag(x[0], x[1], self.z_trap)
+            results = minimize(field_mag, (self.x_trap, self.y_trap), method = 'BFGS', options = {'disp':True})
+            [self.x_trap, self.y_trap] = results.x
+        elif method == '1D':
+            field_mag = lambda x: self.calc_field_mag(self.x_trap, self.y_trap, x)
+            results = minimize(field_mag, self.z_trap, method = 'BFGS', options = {'disp':True})
+            [self.z_trap] = results.x
+        else:
+            field_mag = lambda x: self.calc_field_mag(x[0], x[1], x[2])
+            results = minimize(field_mag, (self.x_trap, self.y_trap, self.z_trap), method = 'Nelder-Mead', options = {'disp':True})
+            [self.x_trap, self.y_trap, self.z_trap] = results.x
 
     def analyze_trap(self, method = '3D'):
         '''Extract trap frequencies, bottom, etc'''
@@ -193,10 +198,15 @@ class BFieldSimulator():
             field_mag_xy = lambda x: self.calc_field_mag(x[0], x[1], x[2])
             trap_loc = [self.x_trap, self.y_trap, self.z_trap]
         Hxy = nd.Hessian(field_mag_xy)
-        Principal_Matrix = Hxy(trap_loc)
+        try:
+            Principal_Matrix = Hxy(trap_loc)
+            self.values, self.vectors = np.linalg.eig(Principal_Matrix)
+            freqs = [(1.2754)*sqrt(abs(val)) for val in self.values]
+        except IndexError:
+            print('Frequency Finding Failure')
+            freqs = [-1,-1,-1]
+            
         
-        self.values, self.vectors = np.linalg.eig(Principal_Matrix)
-        freqs = [(1.2754)*sqrt(abs(val)) for val in self.values]
         self.f_transverse = max(freqs)
         self.f_longitudinal = min(freqs)
         self.omega_transverse = 2*pi*self.f_transverse
@@ -241,43 +251,49 @@ class BFieldSimulator():
         plt.show()
         
         
-    def find_trap_freq(self, method = '3D', analyze_method = '3D', convcheck = False, debug = False):
+    def find_trap_freq(self, method = '3D', analyze_method = '3D', trap_find_method = '3D', convcheck = False, debug = False):
         '''Iterate trap analysis until transverse frequency converges'''
         logging.debug('\nxtrap: %e\nytrap: %e'%(self.x_trap, self.y_trap))
         sim_results = self.analyze_trap()
         
         if method == '1D':
             error = abs(sim_results['f_z'] - sim_results['f_trans']) / sim_results['f_z']
+            logging.debug('f_trans and f_z differ by: %2.1f %%'%(error*100))
+
         else:
             f_trans_prev = 0.1 # An unreasonably long frequency to start
             error = abs(sim_results['f_trans'] - f_trans_prev) / sim_results['f_trans']
             f_trans_prev = sim_results['f_trans']
+            logging.debug('f_trans_prev and f_trans differ by: %2.1f %%'%(error*100))
+
             
         if debug:
             self.plot_z()
             self.plot_xy()
         
-        logging.debug('f_trans_prev and f_trans differ by: %2.1f %%'%(error*100))
         logging.debug('x_trap : %2.0f um \n\ty_trap : %2.0f um \n\tz_trap : %2.0f um'%(self.x_trap*1e6, self.y_trap*1e6, self.z_trap*1e6))
         logging.debug('f_long : %2.0f Hz \n\tf_trans : %2.0f Hz \n\tf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z']))
         n_tries = 1
         while error > CONV_THRESH and n_tries < 10:
             self.zoom(2) #used to be 4; 11/6/13
-            self.find_trap_cen()
+            self.find_trap_cen(method = trap_find_method)
 
-            sim_results = self.analyze_trap(method = analyze_method)
+            sim_results = self.analyze_trap()
             last_error = error
             if method == '1D':
                 error = abs(sim_results['f_z'] - sim_results['f_trans']) / sim_results['f_z']
+                logging.debug('f_trans and f_z differ by: %2.1f %%'%(error*100))
+
             else:
                 error = abs(sim_results['f_trans'] - f_trans_prev) / sim_results['f_trans']
                 f_trans_prev = sim_results['f_trans']
+                logging.debug('f_trans_prev and f_trans differ by: %2.1f %%'%(error*100))
+
                 
             if debug:
                 self.plot_z()
                 self.plot_xy()
             
-            logging.debug('f_trans_prev and f_trans differ by: %2.1f %%'%(error*100))
             logging.debug('x_trap : %2.0f um \n\ty_trap : %2.0f um \n\tz_trap : %2.0f um'%(self.x_trap*1e6, self.y_trap*1e6, self.z_trap*1e6))
             logging.debug('f_long : %2.0f Hz \n\tf_trans : %2.0f Hz \n\tf_z : %2.0f Hz'%(sim_results['f_long'], sim_results['f_trans'], sim_results['f_z']))
             

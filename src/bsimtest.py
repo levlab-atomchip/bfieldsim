@@ -9,7 +9,7 @@ import unittest
 import bfsimulator
 from acmconstants import MU_0
 from math import pi, sqrt
-from acwires import HThinWire, VThinWire
+from acwires import *
 import logging
 
 logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
@@ -89,7 +89,7 @@ class TestAgainstLit(unittest.TestCase):
                      'B_zbias' : 0, 
                      'B_xbias' : 0.4e-4,
                      'B_ybias' : 20e-4}
-        self.lit_chips = [hansel_I, hansel_II, wildermuth, treutlein_z1, treutlein_z2, treutlein_z3]
+        self.lit_chips = [hansel_I, hansel_II, wildermuth, treutlein_z1, treutlein_z2]
         self.lit_chips = map(self.make_chip_wires, self.lit_chips)
         self.bfsim = bfsimulator.BFieldSimulator()
         
@@ -97,11 +97,11 @@ class TestAgainstLit(unittest.TestCase):
         hwires = []
         vwires = []
         #(name, length, width, height, current, xl, y0, z0, subwires = 1):
-        hwires.append(HThinWire('Central Test Wire', chip['l'], 100e-6, 5e-6, chip['I'], 
+        hwires.append(HThickFinWire('Central Test Wire', chip['l'], 100e-6, 5e-6, chip['I'], 
                              -0.5*chip['l'],0, 0))
         
-        vwires.append(VThinWire('Arm 1', 10*chip['l'], 100e-6, 5e-6, chip['I'], -0.5*chip['l'], -10*chip['l'], 0))
-        vwires.append(VThinWire('Arm 2', 10*chip['l'], 100e-6, 5e-6, chip['I'], 0.5*chip['l'], 0, 0))
+        vwires.append(VThickFinWire('Arm 1', 10*chip['l'], 100e-6, 5e-6, chip['I'], -0.5*chip['l'], -10*chip['l'], 0))
+        vwires.append(VThickFinWire('Arm 2', 10*chip['l'], 100e-6, 5e-6, chip['I'], 0.5*chip['l'], 0, 0))
         
         chip['wirespecs'] = hwires + vwires
         return chip
@@ -110,23 +110,23 @@ class TestAgainstLit(unittest.TestCase):
         for chip in self.lit_chips:
             print '%s Chip:'%chip['name']
             self.bfsim.set_chip(chip)
-            sim_results = self.bfsim.find_trap_freq(method = '1D', debug = False)
+            sim_results = self.bfsim.find_trap_freq(method = '3D', trap_find_method = '3D', debug = False)
             
             f_z_error = abs(sim_results['f_z'] - chip['f_z']) / chip['f_z']
             f_trans_error = abs(sim_results['f_trans'] - chip['f_trans']) / chip['f_trans']
             f_long_error = abs(sim_results['f_long'] - chip['f_long']) / chip['f_long']
             height_error = abs(sim_results['h'] - chip['h']) / chip['h']
             
-            self.bfsim.plot_z()
+            # self.bfsim.plot_z()
             
-            self.assertLessEqual(f_z_error, FAIL_THRESH, 
-                'Vertical Frequency:\nTrue: %2.0f Hz\nSim:  %2.0f Hz'%(chip['f_z'], sim_results['f_z']))
-            # self.assertLessEqual(f_trans_error, FAIL_THRESH, 
-                # 'Transverse Frequency:\nTrue: %2.0f Hz\nSim:  %2.0f Hz'%(chip['f_trans'], sim_results['f_trans']))
-#            self.assertLessEqual(f_long_error, 0.10,
-#                'Longitudinal Frequency:\nTrue: %2.0f Hz\nSim:  %2.0f Hz'%(chip['f_long'], sim_results['f_long']))
-            self.assertLessEqual(height_error, FAIL_THRESH,
-                'Trap Height:\nTrue: %e\nSim:  %e'%(chip['h'], sim_results['h']))
+            # self.assertLessEqual(f_z_error, FAIL_THRESH, 
+                # 'Vertical Frequency:\nTrue: %2.0f Hz\nSim:  %2.0f Hz'%(chip['f_z'], sim_results['f_z']))
+            self.assertLessEqual(f_trans_error, FAIL_THRESH, 
+                'Transverse Frequency:\nTrue: %2.0f Hz\nSim:  %2.0f Hz'%(chip['f_trans'], sim_results['f_trans']))
+            # self.assertLessEqual(f_long_error, FAIL_THRESH,
+               # 'Longitudinal Frequency:\nTrue: %2.0f Hz\nSim:  %2.0f Hz'%(chip['f_long'], sim_results['f_long']))
+            # self.assertLessEqual(height_error, FAIL_THRESH,
+                # 'Trap Height:\nTrue: %e\nSim:  %e'%(chip['h'], sim_results['h']))
             print 'OK'
 
             
