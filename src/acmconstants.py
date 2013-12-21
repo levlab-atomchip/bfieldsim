@@ -17,6 +17,7 @@ A_0 = 5.29e-11 #m, Bohr radius
 MU_0 = 4*pi*1e-7
 K_B = 1.38e-23 #J/K, boltzmann constant
 E = 1.602e-19 # C, elementary charge
+G = 9.8 #m/s^2, gravitational acceleration at Earth's surface
 
 
 ## Imaging Transition Properties
@@ -36,6 +37,8 @@ SIGMA_0 = 2.907e-13 #m^2, resonant x section
 A = 5.2e-9 #m, scattering length
 M = 87 * 1.7e-27 #kg
 G = (4 * pi * HBAR**2 * A) / M
+M_F = 2 #we are in the 2, 2 state
+G_F = 0.5 #we are in the 2, 2 state
 
 # Dy Properties
 #A = 100 * A_0

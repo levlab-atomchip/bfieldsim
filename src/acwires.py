@@ -7,7 +7,7 @@ Created on Tue Apr 23 22:54:24 2013
 
 from math import pi, sqrt, atan, atanh, log
 import numpy as np
-from acmconstants import MU_0 #Bohr magneton
+from acmconstants import MU_0 #Permeability of Free Space
 
 class Wire():
     '''Basic class describing a wire of rectangular cross section with uniform current density.'''

@@ -17,7 +17,8 @@ from matplotlib import cm
 import numpy as np
 import matplotlib.pyplot as plt
 from math import pi, sqrt, atan2, ceil
-from acmconstants import K_B, M
+from acmconstants import K_B, M, G, MU_B, M_F, G_F 
+#Boltzmann constant, mass of Rb-87, Gravitational acceleration, Bohr Magneton, m_f quantum number, g-factor
 import logging
 from scipy.optimize import minimize
 import numdifftools as nd
@@ -102,7 +103,7 @@ class BFieldSimulator():
         '''
         self.B_tot_z = np.zeros(len(self.z_range))
         for ii in xrange(len(self.z_range)):
-            self.B_tot_z[ii] = self.calc_field_mag(self.x_trap, self.y_trap, self.z_range[ii])
+            self.B_tot_z[ii] = self.calc_eff_bmag(self.x_trap, self.y_trap, self.z_range[ii])
 
     def find_z_min(self):
         '''Find minimum value of B field magnitude along z axis through trap center.
@@ -130,7 +131,7 @@ class BFieldSimulator():
         '''
         self.B_tot_xz = np.zeros(self.x.shape)
         for coords in np.ndenumerate(self.x):    
-            self.B_tot_xz[coords[0]] = self.calc_field_mag(self.x[coords[0]], 
+            self.B_tot_xz[coords[0]] = self.calc_eff_bmag(self.x[coords[0]], 
                                                   self.y_trap, 
                                                     self.z[coords[0]])
             
@@ -154,7 +155,7 @@ class BFieldSimulator():
         '''
         self.B_tot_xy = np.zeros(self.x.shape)
         for coords in np.ndenumerate(self.x):    
-            self.B_tot_xy[coords[0]] = self.calc_field_mag(self.x[coords[0]], 
+            self.B_tot_xy[coords[0]] = self.calc_eff_bmag(self.x[coords[0]], 
                                                   self.y[coords[0]], 
                                                     self.z_trap)
     def find_xy_min(self):
@@ -202,6 +203,14 @@ class BFieldSimulator():
         '''Calculate total B field magnitude due to all wires and bias fields at a point.'''
         tot_field = self.calc_field(x, y, z)
         return np.linalg.norm(tot_field)
+        
+    def calc_eff_bmag(self, x, y, z):
+        '''Calculate total potential, expressed as an effective field, due to magnetic field and gravity (referenced to z = 0)'''
+        field_mag = self.calc_field_mag(x, y, z)
+        field_pot = M_F * G_F * MU_B*field_mag # Because g_f = 1/2, m_f = 2 for the 2, 2 state
+        gravity_pot = -1*M*G*z #-1 because z axis is 'upside-down'
+        total_pot = field_pot + gravity_pot
+        return total_pot / (M_F*G_F*MU_B)
 
     def calc_field_dir(self, x, y, z):
         '''Calculate direction in xy plane of B field due to all wires, at a point.'''
@@ -234,19 +243,19 @@ class BFieldSimulator():
             Updates x_trap, y_trap, z_trap attributes.
         '''
         if method == '1+2D':
-            field_mag = lambda x: self.calc_field_mag(self.x_trap, self.y_trap, x)
-            results = minimize(field_mag, self.z_trap, method = min_method, options = {'disp':True})
+            eff_bmag = lambda x: self.calc_eff_bmag(self.x_trap, self.y_trap, x)
+            results = minimize(eff_bmag, self.z_trap, method = min_method, options = {'disp':True})
             [self.z_trap] = results.x
-            field_mag = lambda x: self.calc_field_mag(x[0], x[1], self.z_trap)
-            results = minimize(field_mag, (self.x_trap, self.y_trap), method = min_method, options = {'disp':True})
+            eff_bmag = lambda x: self.calc_eff_bmag(x[0], x[1], self.z_trap)
+            results = minimize(eff_bmag, (self.x_trap, self.y_trap), method = min_method, options = {'disp':True})
             [self.x_trap, self.y_trap] = results.x
         elif method == '1D':
-            field_mag = lambda x: self.calc_field_mag(self.x_trap, self.y_trap, x)
-            results = minimize(field_mag, self.z_trap, method = min_method, options = {'disp':True})
+            eff_bmag = lambda x: self.calc_eff_bmag(self.x_trap, self.y_trap, x)
+            results = minimize(eff_bmag, self.z_trap, method = min_method, options = {'disp':True})
             [self.z_trap] = results.x
         else:
-            field_mag = lambda x: self.calc_field_mag(x[0], x[1], x[2])
-            results = minimize(field_mag, (self.x_trap, self.y_trap, self.z_trap), method = min_method, options = {'disp':True})
+            eff_bmag = lambda x: self.calc_eff_bmag(x[0], x[1], x[2])
+            results = minimize(eff_bmag, (self.x_trap, self.y_trap, self.z_trap), method = min_method, options = {'disp':True})
             [self.x_trap, self.y_trap, self.z_trap] = results.x
 
     def analyze_trap(self, method = '3D'):
@@ -272,18 +281,20 @@ class BFieldSimulator():
         
         '''
         trap_params = {}
-       
+        
+        freq_prefactor = sqrt((G_F*M_F*MU_B) / M) / (2*pi) #convert eff_bmag to frequency
+        
         if method == '2D':
-            field_mag_xy = lambda x: self.calc_field_mag(x[0], x[1], self.z_trap)
+            eff_bmag_xy = lambda x: self.calc_eff_bmag(x[0], x[1], self.z_trap)
             trap_loc = [self.x_trap, self.y_trap]
         else:
-            field_mag_xy = lambda x: self.calc_field_mag(x[0], x[1], x[2])
+            eff_bmag_xy = lambda x: self.calc_eff_bmag(x[0], x[1], x[2])
             trap_loc = [self.x_trap, self.y_trap, self.z_trap]
-        Hxy = nd.Hessian(field_mag_xy)
+        Hxy = nd.Hessian(eff_bmag_xy)
         try:
             Principal_Matrix = Hxy(trap_loc)
             self.values, self.vectors = np.linalg.eig(Principal_Matrix)
-            freqs = [(1.2754)*sqrt(abs(val)) for val in self.values] # This value 
+            freqs = [freq_prefactor*sqrt(abs(val)) for val in self.values] # This value 
         except IndexError:
             print('Frequency Finding Failure')
             freqs = [-1,-1,-1]
@@ -295,10 +306,10 @@ class BFieldSimulator():
         self.omega_longitudinal = 2*pi*self.f_longitudinal
         
         if method == '2D':
-            field_mag_z = lambda z: self.calc_field_mag(self.x_trap, self.y_trap, z)
-            Hz = nd.Hessian(field_mag_z)
+            eff_bmag_z = lambda z: self.calc_eff_bmag(self.x_trap, self.y_trap, z)
+            Hz = nd.Hessian(eff_bmag_z)
             ddBdzz = Hz([self.z_trap])[0][0]
-            self.f_z = 1.2754*sqrt(abs(ddBdzz))
+            self.f_z = freq_prefactor*sqrt(abs(ddBdzz))
         else:
             self.f_z = sorted(freqs)[1]
         self.omega_z = 2*pi*self.f_z
