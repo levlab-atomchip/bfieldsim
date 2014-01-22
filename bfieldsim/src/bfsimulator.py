@@ -33,12 +33,12 @@ CONV_THRESH = 0.01 #percent change allowed in f_trans to declare convergence
 class BFieldSimulator():
     def __init__(self, chip = None):
         '''Set up variables to define window and initialize the fields and trap location.'''
-        self.resolution=.000025 # resolution of the plots
-        self.plotleft=-1*mm # boundary of plots, made it smaller for small arm trap on 11/6/13
-        self.plotright=1*mm
+        self.resolution=.0001 # resolution of the plots; was 25 um
+        self.plotleft=-5*mm # boundary of plots, made it smaller for small arm trap on 11/6/13
+        self.plotright=5*mm
         self.nhorz = ceil((self.plotright - self.plotleft) / self.resolution)
-        self.plottop = 1*mm
-        self.plotbottom = -1*mm
+        self.plottop = 5*mm
+        self.plotbottom = -5*mm
         self.nvert = ceil((self.plottop - self.plotbottom) / self.resolution)
         self.x, self.y =np.meshgrid(np.arange(self.plotleft, self.plotright, self.resolution), 
                                     np.arange(self.plotbottom, self.plottop, self.resolution))
@@ -120,7 +120,7 @@ class BFieldSimulator():
         plt.plot(self.z_range*1e3, self.B_tot_z*1e4) # Scales length to mm and field to Gauss
         plt.xlabel('Z axis (mm)') # Standard axis labelling
         plt.ylabel('Effective |B|, (G)')
-        plt.ylim((1e4*min(self.B_tot_z),1e4*min(self.B_tot_z[0], self.B_tot_z[-1]))) # Tries to focus on trap region
+        # plt.ylim((1e4*min(self.B_tot_z),1e4*min(self.B_tot_z[0], self.B_tot_z[-1]))) # Tries to focus on trap region
         plt.show()
 
     def calc_xz(self):
