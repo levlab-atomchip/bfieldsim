@@ -6,7 +6,6 @@ Created on Thu May 02 21:43:22 2013
 """
 
 from math import pi
-from Window import window
 
 # Physical Constants, from Steck Rb87 Alkali D Line Data
 C = 2.99792e8 # m/s (exact)
@@ -25,7 +24,7 @@ G = 9.8 #m/s^2, gravitational acceleration at Earth's surface
 #G1 = 1
 #D12 = 1.73135e-29 #C*m
 #D12 = 2.042*A_0
-D_eff = 2.989*E*A_0
+D_EFF = 2.989*E*A_0
 #G2 = 1
 OMEGA_RES = 2*pi*384.230e12 #Hz
 LINEWIDTH_RES = 2*pi*6.0666e6 #Hz
@@ -45,7 +44,6 @@ G_F = 0.5 #we are in the 2, 2 state
 #M = 162.5 * 1.7e-27
 #MU_B = 10* 9.274e-24
 
-CLOUD_THICKNESS = window.cell_size
 BG_NOISE_CURRENT = 30 #e/p/s
 
 # Camera Properties
